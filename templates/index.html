@@ -7,36 +7,58 @@
     </head>
 <body>
     <style>
+        /* --- GLOBAL & RESPONSIVE SETUP --- */
+        * {
+            box-sizing: border-box; /* Makes padding and borders behave predictably */
+        }
+        
         body {
             font-family: Arial, sans-serif;
             max-width: 600px;
             margin: 0 auto;
-            padding: 20px;
+            padding: 10px; /* Reduced padding for smaller screens */
+        }
+
+        /* --- HEADER & LOGO --- */
+        header {
+            text-align: center;
+            margin-bottom: 20px;
         }
         
+        header img {
+            max-width: 150px;
+            height: auto;
+        }
+
+        /* --- BUTTONS & CONTAINERS (RESPONSIVE) --- */
         .button-container {
             display: flex;
             flex-direction: column;
             align-items: center;
             gap: 10px;
             margin-top: 20px;
+            width: 100%; /* Make container use full width */
         }
         
         button {
             padding: 15px 30px;
             font-size: 18px;
-            min-width: 200px;
+            width: 100%; /* Make buttons fill their container */
+            max-width: 350px; /* Stop buttons from being overly wide */
             cursor: pointer;
             color: black;
+            border: 1px solid #ccc; /* Added a subtle border */
+            background-color: #f4f4f4; /* Light grey background */
             border-radius: 5px;
             transition: background-color 0.3s;
-            margin: 5px;
+            margin: 5px 0; /* Adjusted margin */
         }
         
         button:hover {
-            background-color: #244EC5;
+            background-color: #d4d4d4; /* Darker hover */
         }
 
+        /* --- VIEWS & CONTENT --- */
         #question-text {
             font-size: 24px;
             font-weight: bold;
@@ -44,32 +66,77 @@
             text-align: center;
         }
 
+        /* Center-align text for simple views */
+        #start-view, #guess-view, #learn-view, #end-view {
+            text-align: center;
+        }
+
+        /* --- RESPONSIVE FORM --- */
+        #learn-form {
+            display: flex;
+            flex-direction: column;
+            align-items: center; /* Center form elements */
+            gap: 10px;
+        }
+        
+        #learn-form input[type="text"] {
+            padding: 15px;
+            font-size: 18px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            width: 100%;
+            max-width: 350px; /* Match button width */
+        }
+
+        /* --- NEW SPINNER STYLES --- */
+        #loading-spinner {
+            /* 'display: none' is handled by JS */
+            text-align: center;
+            padding: 40px;
+        }
+
+        .loader {
+            border: 8px solid #f3f3f3; /* Light grey */
+            border-top: 8px solid #244EC5; /* Blue */
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px auto; /* Center loader and add space below */
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
         /* --- STYLES for prediction lists/charts REMOVED --- */
 
     </style>
     <div id="game-container">
         
         <header>
-            <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" style="max-width:150px; height:auto;">
+            <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo">
             <h1>Paokinator</h1>
             <p>I will guess the animal on your mind!</p>
         </header>
 
-
-
         <div id="dynamic-content" style="min-height: 20px; padding: 20px 0;">
             </div>
+
         <div id="start-view" style="display: none;">
-             <div>
-                 <p>Think of an animal, and I'll try to guess it by asking you a few questions.</p>
-             </div>
-            <button id="start-button">Start Game</button>
+                <div>
+                    <p>Think of an animal, and I'll try to guess it by asking you a few questions.</p>
+                </div>
+            <div class="button-container">
+                <button id="start-button">Start Game</button>
+            </div>
         </div>
 
         <div id="question-view" style="display: none;">
             <div id="question-text"></div>
             
-            <div>
+            <div class="button-container">
                 <button data-answer="yes">Yes</button>
                 <button data-answer="usually">Usually</button>
                 <button data-answer="sometimes">Sometimes / Maybe</button>
@@ -82,7 +149,7 @@
         <div id="guess-view" style="display: none;">
             <h3 id="guess-text"></h3>
             <p id="guess-confidence"></p>
-            <div>
+            <div class="button-container">
                 <button id="guess-yes">Yes!</button>
                 <button id="guess-no">No</button>
             </div>
@@ -100,16 +167,19 @@
 
         <div id="end-view" style="display: none;">
             <h2 id="end-message"></h2>
-            
-            <button id="play-again-button" style="margin-top: 20px;">Play Again</button>
+            <div class="button-container">
+                <button id="play-again-button" style="margin-top: 20px;">Play Again</button>
+            </div>
         </div>
 
         <div id="loading-spinner" style="display: none;">
+            <div class="loader"></div>
             <p>Thinking...</p>
         </div>
     </div>
 
     <script>
+        // --- JAVASCRIPT IS UNCHANGED ---
         const API_BASE = window.location.origin;
 
         // --- STATE MANAGEMENT ---
@@ -141,7 +211,7 @@
                 if (v) v.style.display = 'none';
             });
             if (viewToShow !== null) {
-                 dynamicContent.innerHTML = '';
+                    dynamicContent.innerHTML = '';
             }
             if (viewToShow) {
                 viewToShow.style.display = 'block';
@@ -297,15 +367,15 @@
                 showQuestion(data.question, data.feature, data.question_number);
                 
             } else if (data.top_predictions) {
-                 if (data.top_predictions.length > 0) {
-                      lastTopPredictions = data.top_predictions; 
-                      currentGuessType = 'final'; // This is a final guess
-                      isSneakyGuess = false; // Ensure flags are clear
-                      sneakyGuessAnimal = null;
-                      showGuess(data.top_predictions[0][0], 'final');
-                 } else {
-                      showLearnForm();
-                 }
+                if (data.top_predictions.length > 0) {
+                        lastTopPredictions = data.top_predictions; 
+                        currentGuessType = 'final'; // This is a final guess
+                        isSneakyGuess = false; // Ensure flags are clear
+                        sneakyGuessAnimal = null;
+                        showGuess(data.top_predictions[0][0], 'final');
+                } else {
+                        showLearnForm();
+                }
             }
         }
         
