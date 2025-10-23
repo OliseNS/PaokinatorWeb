@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Paokinator - The Animal Guessing Game</title>
+    </head>
+<body>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .button-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        button {
+            padding: 15px 30px;
+            font-size: 18px;
+            min-width: 200px;
+            cursor: pointer;
+            color: black;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+            margin: 5px;
+        }
+        
+        button:hover {
+            background-color: #244EC5;
+        }
+
+        #question-text {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        /* --- STYLES for prediction lists/charts REMOVED --- */
+
+    </style>
+    <div id="game-container">
+        
+        <header>
+            <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" style="max-width:150px; height:auto;">
+            <h1>Paokinator</h1>
+            <p>I will guess the animal on your mind!</p>
+        </header>
+
+
+
+        <div id="dynamic-content" style="min-height: 20px; padding: 20px 0;">
+            </div>
+        <div id="start-view" style="display: none;">
+             <div>
+                 <p>Think of an animal, and I'll try to guess it by asking you a few questions.</p>
+             </div>
+            <button id="start-button">Start Game</button>
+        </div>
+
+        <div id="question-view" style="display: none;">
+            <div id="question-text"></div>
+            
+            <div>
+                <button data-answer="yes">Yes</button>
+                <button data-answer="usually">Usually</button>
+                <button data-answer="sometimes">Sometimes / Maybe</button>
+                <button data-answer="rarely">Rarely</button>
+                <button data-answer="no">No</button>
+                <button data-answer="skip">I Don't Know</button>
+            </div>
+        </div>
+
+        <div id="guess-view" style="display: none;">
+            <h3 id="guess-text"></h3>
+            <p id="guess-confidence"></p>
+            <div>
+                <button id="guess-yes">Yes!</button>
+                <button id="guess-no">No</button>
+            </div>
+        </div>
+
+        <div id="learn-view" style="display: none;">
+            <h3>Darn, you've beaten me!</h3>
+
+            <p style="margin-top: 20px;">What was the animal you were thinking of?</p>
+            <form id="learn-form">
+                <input type="text" id="animal-input" placeholder="Enter animal name" required>
+                <button type="submit">Teach Me</button>
+            </form>
+        </div>
+
+        <div id="end-view" style="display: none;">
+            <h2 id="end-message"></h2>
+            
+            <button id="play-again-button" style="margin-top: 20px;">Play Again</button>
+        </div>
+
+        <div id="loading-spinner" style="display: none;">
+            <p>Thinking...</p>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = window.location.origin;
+
+        // --- STATE MANAGEMENT ---
+        let sessionId = null;
+        let currentFeature = null;
+        let currentGuess = null;
+        let lastTopPredictions = []; 
+        // predictionsChart variable removed
+        let currentGuessType = null; // For 'final' guess
+        
+        // --- START SNEAKY GUESS STATE ---
+        let isSneakyGuess = false;
+        let sneakyGuessAnimal = null;
+        // --- END SNEAKY GUESS STATE ---
+        
+        // --- UI ELEMENTS ---
+        const dynamicContent = document.getElementById('dynamic-content');
+        const startView = document.getElementById('start-view');
+        const questionView = document.getElementById('question-view');
+        const guessView = document.getElementById('guess-view');
+        const learnView = document.getElementById('learn-view');
+        const endView = document.getElementById('end-view');
+        const loadingSpinner = document.getElementById('loading-spinner');
+
+        // --- VIEW CONTROLLER ---
+        function showView(viewToShow) {
+            const allViews = [startView, questionView, guessView, learnView, endView, loadingSpinner];
+            allViews.forEach(v => {
+                if (v) v.style.display = 'none';
+            });
+            if (viewToShow !== null) {
+                 dynamicContent.innerHTML = '';
+            }
+            if (viewToShow) {
+                viewToShow.style.display = 'block';
+            }
+        }
+        
+        // --- API CALLS ---
+        async function apiCall(endpoint, options = {}) {
+            showView(loadingSpinner);
+            try {
+                const response = await fetch(`${API_BASE}${endpoint}`, options);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+                // DEBUG LINE: Delete or comment out the next line to disable logging.
+                if (data.top_predictions) {
+                    console.log(
+                        `--- Top 5 for ${endpoint.split('/').pop()} ---\n` +
+                        data.top_predictions.slice(0, 5)
+                            .map((p, i) => `${i + 1}. ${p[0]}: ${(p[1] * 100).toFixed(2)}%`)
+                            .join('\n')
+                    );
+                }
+                return data;
+            } catch (error) {
+                console.error("API call failed:", error);
+                displayError("Could not connect to the game server. Please make sure both the 'server.py' and 'app.py' scripts are running, then refresh.");
+                return null;
+            }
+        }
+
+        // --- GAME LOGIC ---
+        async function startGame() {
+            // Chart destruction logic removed
+            
+            const data = await apiCall('/api/start', { method: 'POST' });
+            if (data && data.session_id) {
+                sessionId = data.session_id;
+                await getNextQuestion();
+            }
+        }
+
+        async function getNextQuestion() {
+            if (!sessionId) return;
+            const data = await apiCall(`/api/question/${sessionId}`);
+            if (data) {
+                if (data.top_predictions) {
+                    lastTopPredictions = data.top_predictions;
+                }
+                updateGameState(data);
+            }
+        }
+
+        async function handleAnswer(answer) {
+            
+            // --- START SNEAKY GUESS PAYLOAD ---
+            let payload = {};
+            if (isSneakyGuess) {
+                payload = { 
+                    feature: currentFeature, // This will be 'sneaky_guess'
+                    answer: answer, 
+                    animal_name: sneakyGuessAnimal 
+                };
+                // Reset flag after using it
+                isSneakyGuess = false;
+                sneakyGuessAnimal = null;
+            } else {
+                payload = { 
+                    feature: currentFeature, 
+                    answer: answer 
+                };
+            }
+            
+            const data = await apiCall(`/api/answer/${sessionId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            // --- END SNEAKY GUESS PAYLOAD ---
+
+            if (!data) return; // apiCall failed
+
+            // --- START SNEAKY GUESS RESPONSE HANDLING ---
+            if (data.status === 'guess_correct') {
+                // The sneaky guess was right! End the game.
+                currentGuess = data.animal; // For the end screen
+                if (data.top_predictions) {
+                    lastTopPredictions = data.top_predictions;
+                }
+                showEndView(`Awesome! Trust the Maths I knew it was a ${currentGuess}!`);
+            } else {
+                // This is the normal path OR a failed sneaky guess.
+                // In either case, we just get the next question.
+                if (data.top_predictions) {
+                    lastTopPredictions = data.top_predictions;
+                }
+                await getNextQuestion();
+            }
+            // --- END SNEAKY GUESS RESPONSE HANDLING ---
+        }
+
+        async function handleGuessResponse(isCorrect) {
+            // This function is now ONLY for the 'final' guess
+            if (isCorrect) {
+                showEndView(`Awesome! Trust the Maths I knew it was a ${currentGuess}!`);
+            } else {
+                // 'currentGuessType' will only be 'final' here.
+                // We no longer need to check for 'middle'.
+                showLearnForm(); 
+            }
+        }
+
+        async function handleLearnSubmit(event) {
+            event.preventDefault();
+            const animalName = document.getElementById('animal-input').value.trim();
+            if (animalName) {
+                await apiCall(`/api/learn/${sessionId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ animal_name: animalName })
+                });
+                showEndView("Thank you for teaching me! I'll remember that for next time.");
+            }
+        }
+        
+        function updateGameState(data) {
+            if (data.error) {
+                displayError(data.error);
+                return;
+            }
+
+            if (data.should_guess) {
+                // This block is now ONLY for the 'final' guess
+                currentGuessType = data.guess_type; 
+                isSneakyGuess = false; // Ensure flags are clear
+                sneakyGuessAnimal = null;
+                showGuess(data.guess, data.guess_type);
+                
+            } else if (data.question) {
+                currentGuessType = null; // Clear final guess type
+                
+                // --- START SNEAKY GUESS STATE UPDATE ---
+                if (data.is_sneaky_guess) {
+                    isSneakyGuess = true;
+                    sneakyGuessAnimal = data.animal_name;
+                } else {
+                    isSneakyGuess = false;
+                    sneakyGuessAnimal = null;
+                }
+                // --- END SNEAKY GUESS STATE UPDATE ---
+                
+                showQuestion(data.question, data.feature, data.question_number);
+                
+            } else if (data.top_predictions) {
+                 if (data.top_predictions.length > 0) {
+                      lastTopPredictions = data.top_predictions; 
+                      currentGuessType = 'final'; // This is a final guess
+                      isSneakyGuess = false; // Ensure flags are clear
+                      sneakyGuessAnimal = null;
+                      showGuess(data.top_predictions[0][0], 'final');
+                 } else {
+                      showLearnForm();
+                 }
+            }
+        }
+        
+        function showQuestion(question, feature, questionNumber) {
+            currentFeature = feature; // This will be 'sneaky_guess' if it's a sneaky guess
+            const questionTextEl = document.getElementById('question-text');
+            
+            if (questionNumber) {
+                questionTextEl.textContent = `Q${questionNumber}: ${question}`;
+            } else {
+                questionTextEl.textContent = question; 
+            }
+
+            // Chart rendering logic REMOVED
+
+            showView(questionView); // This view has all 6 answer buttons, as requested
+        }
+
+        function showGuess(guess, guessType) {
+            // This view is now ONLY for the 'final' guess
+            currentGuess = guess;
+            const guessTextEl = document.getElementById('guess-text');
+            const guessConfidenceEl = document.getElementById('guess-confidence');
+            
+            guessTextEl.textContent = `Is it a ${guess}?`;
+            guessConfidenceEl.innerHTML = `<strong>I'm pretty confident about this one!</strong>`;
+            
+            showView(guessView);
+        }
+
+        function showLearnForm() {
+            showView(learnView);
+        }
+
+        function showEndView(message) {
+            document.getElementById('end-message').textContent = message;
+            
+            showView(endView);
+        }
+        
+        function displayError(message) {
+            showView(null); 
+            const errorHtml = `<div style="color: red; border: 1px solid red; padding: 10px;">
+                <p><b>An Error Occurred</b></p>
+                <p>${message}</p>
+            </div>`;
+            dynamicContent.innerHTML = errorHtml; 
+            startView.style.display = 'block'; 
+        }
+
+        document.getElementById('start-button').addEventListener('click', startGame);
+        document.getElementById('play-again-button').addEventListener('click', () => location.reload());
+        document.getElementById('learn-form').addEventListener('submit', handleLearnSubmit);
+
+        document.querySelectorAll('#question-view button').forEach(button => {
+            button.addEventListener('click', (e) => handleAnswer(e.target.dataset.answer));
+        });
+        
+        document.getElementById('guess-yes').addEventListener('click', () => handleGuessResponse(true));
+        document.getElementById('guess-no').addEventListener('click', () => handleGuessResponse(false));
+
+        showView(startView);
+
+        
+    </script>
+</body>
+</html>
