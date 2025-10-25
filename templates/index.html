@@ -9,14 +9,14 @@
     <style>
         /* --- GLOBAL & RESPONSIVE SETUP --- */
         * {
-            box-sizing: border-box; /* Makes padding and borders behave predictably */
+            box-sizing: border-box;
         }
         
         body {
             font-family: Arial, sans-serif;
             max-width: 600px;
             margin: 0 auto;
-            padding: 10px; /* Reduced padding for smaller screens */
+            padding: 10px;
         }
 
         /* --- HEADER & LOGO --- */
@@ -37,25 +37,25 @@
             align-items: center;
             gap: 10px;
             margin-top: 20px;
-            width: 100%; /* Make container use full width */
+            width: 100%;
         }
         
         button {
             padding: 15px 30px;
             font-size: 18px;
-            width: 100%; /* Make buttons fill their container */
-            max-width: 350px; /* Stop buttons from being overly wide */
+            width: 100%;
+            max-width: 350px;
             cursor: pointer;
             color: black;
-            border: 1px solid #ccc; /* Added a subtle border */
-            background-color: #f4f4f4; /* Light grey background */
+            border: 1px solid #ccc;
+            background-color: #f4f4f4;
             border-radius: 5px;
             transition: background-color 0.3s;
-            margin: 5px 0; /* Adjusted margin */
+            margin: 5px 0;
         }
         
         button:hover {
-            background-color: #d4d4d4; /* Darker hover */
+            background-color: #d4d4d4;
         }
 
         /* --- VIEWS & CONTENT --- */
@@ -66,7 +66,6 @@
             text-align: center;
         }
 
-        /* Center-align text for simple views */
         #start-view, #guess-view, #learn-view, #end-view {
             text-align: center;
         }
@@ -75,7 +74,7 @@
         #learn-form {
             display: flex;
             flex-direction: column;
-            align-items: center; /* Center form elements */
+            align-items: center;
             gap: 10px;
         }
         
@@ -85,38 +84,35 @@
             border-radius: 5px;
             border: 1px solid #ccc;
             width: 100%;
-            max-width: 350px; /* Match button width */
+            max-width: 350px;
         }
 
-        /* --- NEW SPINNER STYLES --- */
+        /* --- SPINNER STYLES --- */
         #loading-spinner {
-            /* 'display: none' is handled by JS */
             text-align: center;
             padding: 40px;
         }
 
         .loader {
-            border: 8px solid #f3f3f3; /* Light grey */
-            border-top: 8px solid #244EC5; /* Blue */
+            border: 8px solid #f3f3f3;
+            border-top: 8px solid #244EC5;
             border-radius: 50%;
             width: 50px;
             height: 50px;
             animation: spin 1s linear infinite;
-            margin: 0 auto 15px auto; /* Center loader and add space below */
+            margin: 0 auto 15px auto;
         }
 
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-        
-        /* --- STYLES for prediction lists/charts REMOVED --- */
 
     </style>
     <div id="game-container">
         
         <header>
-            <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo">
+            <img src="/static/logo.png" alt="Logo">
             <h1>Paokinator</h1>
             <p>I will guess the animal on your mind!</p>
         </header>
@@ -179,7 +175,6 @@
     </div>
 
     <script>
-        // --- JAVASCRIPT IS UNCHANGED ---
         const API_BASE = window.location.origin;
 
         // --- STATE MANAGEMENT ---
@@ -187,13 +182,10 @@
         let currentFeature = null;
         let currentGuess = null;
         let lastTopPredictions = []; 
-        // predictionsChart variable removed
-        let currentGuessType = null; // For 'final' guess
+        let currentGuessType = null;
         
-        // --- START SNEAKY GUESS STATE ---
         let isSneakyGuess = false;
         let sneakyGuessAnimal = null;
-        // --- END SNEAKY GUESS STATE ---
         
         // --- UI ELEMENTS ---
         const dynamicContent = document.getElementById('dynamic-content');
@@ -227,27 +219,26 @@
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 const data = await response.json();
-                // DEBUG LINE: Delete or comment out the next line to disable logging.
+                
+                // FIXED: Access object properties instead of array indices
                 if (data.top_predictions) {
                     console.log(
                         `--- Top 5 for ${endpoint.split('/').pop()} ---\n` +
                         data.top_predictions.slice(0, 5)
-                            .map((p, i) => `${i + 1}. ${p[0]}: ${(p[1] * 100).toFixed(2)}%`)
+                            .map((p, i) => `${i + 1}. ${p.animal}: ${(p.probability * 100).toFixed(2)}%`)
                             .join('\n')
                     );
                 }
                 return data;
             } catch (error) {
                 console.error("API call failed:", error);
-                displayError("Could not connect to the game server. Please make sure both the 'server.py' and 'app.py' scripts are running, then refresh.");
+                displayError("Your session has expired or the connection was lost. Please refresh the page to start a new game.");
                 return null;
             }
         }
 
         // --- GAME LOGIC ---
         async function startGame() {
-            // Chart destruction logic removed
-            
             const data = await apiCall('/api/start', { method: 'POST' });
             if (data && data.session_id) {
                 sessionId = data.session_id;
@@ -267,16 +258,13 @@
         }
 
         async function handleAnswer(answer) {
-            
-            // --- START SNEAKY GUESS PAYLOAD ---
             let payload = {};
             if (isSneakyGuess) {
                 payload = { 
-                    feature: currentFeature, // This will be 'sneaky_guess'
+                    feature: currentFeature,
                     answer: answer, 
                     animal_name: sneakyGuessAnimal 
                 };
-                // Reset flag after using it
                 isSneakyGuess = false;
                 sneakyGuessAnimal = null;
             } else {
@@ -291,36 +279,27 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
-            // --- END SNEAKY GUESS PAYLOAD ---
 
-            if (!data) return; // apiCall failed
+            if (!data) return;
 
-            // --- START SNEAKY GUESS RESPONSE HANDLING ---
             if (data.status === 'guess_correct') {
-                // The sneaky guess was right! End the game.
-                currentGuess = data.animal; // For the end screen
+                currentGuess = data.animal;
                 if (data.top_predictions) {
                     lastTopPredictions = data.top_predictions;
                 }
                 showEndView(`Awesome! Trust the Maths I knew it was a ${currentGuess}!`);
             } else {
-                // This is the normal path OR a failed sneaky guess.
-                // In either case, we just get the next question.
                 if (data.top_predictions) {
                     lastTopPredictions = data.top_predictions;
                 }
                 await getNextQuestion();
             }
-            // --- END SNEAKY GUESS RESPONSE HANDLING ---
         }
 
         async function handleGuessResponse(isCorrect) {
-            // This function is now ONLY for the 'final' guess
             if (isCorrect) {
                 showEndView(`Awesome! Trust the Maths I knew it was a ${currentGuess}!`);
             } else {
-                // 'currentGuessType' will only be 'final' here.
-                // We no longer need to check for 'middle'.
                 showLearnForm(); 
             }
         }
@@ -345,16 +324,14 @@
             }
 
             if (data.should_guess) {
-                // This block is now ONLY for the 'final' guess
                 currentGuessType = data.guess_type; 
-                isSneakyGuess = false; // Ensure flags are clear
+                isSneakyGuess = false;
                 sneakyGuessAnimal = null;
                 showGuess(data.guess, data.guess_type);
                 
             } else if (data.question) {
-                currentGuessType = null; // Clear final guess type
+                currentGuessType = null;
                 
-                // --- START SNEAKY GUESS STATE UPDATE ---
                 if (data.is_sneaky_guess) {
                     isSneakyGuess = true;
                     sneakyGuessAnimal = data.animal_name;
@@ -362,25 +339,25 @@
                     isSneakyGuess = false;
                     sneakyGuessAnimal = null;
                 }
-                // --- END SNEAKY GUESS STATE UPDATE ---
                 
                 showQuestion(data.question, data.feature, data.question_number);
                 
             } else if (data.top_predictions) {
                 if (data.top_predictions.length > 0) {
-                        lastTopPredictions = data.top_predictions; 
-                        currentGuessType = 'final'; // This is a final guess
-                        isSneakyGuess = false; // Ensure flags are clear
-                        sneakyGuessAnimal = null;
-                        showGuess(data.top_predictions[0][0], 'final');
+                    lastTopPredictions = data.top_predictions;
+                    currentGuessType = 'final';
+                    isSneakyGuess = false;
+                    sneakyGuessAnimal = null;
+                    // FIXED: Access .animal property
+                    showGuess(data.top_predictions[0].animal, 'final');
                 } else {
-                        showLearnForm();
+                    showLearnForm();
                 }
             }
         }
         
         function showQuestion(question, feature, questionNumber) {
-            currentFeature = feature; // This will be 'sneaky_guess' if it's a sneaky guess
+            currentFeature = feature;
             const questionTextEl = document.getElementById('question-text');
             
             if (questionNumber) {
@@ -389,13 +366,10 @@
                 questionTextEl.textContent = question; 
             }
 
-            // Chart rendering logic REMOVED
-
-            showView(questionView); // This view has all 6 answer buttons, as requested
+            showView(questionView);
         }
 
         function showGuess(guess, guessType) {
-            // This view is now ONLY for the 'final' guess
             currentGuess = guess;
             const guessTextEl = document.getElementById('guess-text');
             const guessConfidenceEl = document.getElementById('guess-confidence');
@@ -412,7 +386,6 @@
 
         function showEndView(message) {
             document.getElementById('end-message').textContent = message;
-            
             showView(endView);
         }
         
@@ -438,8 +411,6 @@
         document.getElementById('guess-no').addEventListener('click', () => handleGuessResponse(false));
 
         showView(startView);
-
-        
     </script>
 </body>
 </html>
