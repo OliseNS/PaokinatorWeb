@@ -1,0 +1,12 @@
+{% extends "layout.html" %}
+
+{% block content %}
+    <h2>Add Questions for {{ animal | title }}</h2>
+    <p>What's a good "Yes/No" question to distinguish a <strong>{{ animal }}</strong> from other animals?</p>
+
+    <form action="{{ url_for('submit_question') }}" method="POST" class="learn-form">
+        <input type="hidden" name="animal" value="{{ animal }}">
+        <input type="text" name="question" placeholder="e.g., 'Does it have stripes?'" required class="input-field" style="max-width: 400px;">
+        <button type="submit" class="btn btn-primary" style="max-width: 400px;">Submit Question</button>
+    </form>
+{% endblock %}

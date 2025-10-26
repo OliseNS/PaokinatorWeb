@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Paokinator - The Thinking Game</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Poppins:wght@500;600&display=swap" rel="stylesheet">
+    <style>
+        /* --- GLOBAL & THEME --- */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html, body {
+            height: 100%;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            font-weight: 400;
+            background-color: #FCFCFD;
+            /* Subtle "Celestial Scroll" background */
+            background-image: radial-gradient(ellipse at top, #ffffff, #f7f8fc 90%);
+            color: #222;
+            line-height: 1.6;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- LAYOUT & TYPOGRAPHY --- */
+        .container {
+            max-width: 550px;
+            margin: 0 auto;
+            padding: 20px;
+            text-align: center;
+            width: 100%;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        
+        /* --- HEADER UPDATES --- */
+        header {
+            padding: 20px 10px 10px 10px;
+            /* 1. Use Flexbox to align items in a row */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            /* 2. Add a gap between the logo and title */
+            gap: 15px; 
+        }
+        
+        header img.logo {
+            /* 3. Make logo bigger */
+            max-width: 100px; 
+            height: auto;
+            margin-bottom: 0; /* Was 10px */
+        }
+
+        header h1 {
+            font-family: 'Poppins', sans-serif;
+            font-size: 2.2rem;
+            font-weight: 600;
+            color: #333;
+            /* 4. Remove default margin to align with logo */
+            margin: 0; 
+        }
+        /* --- END HEADER UPDATES --- */
+
+
+        h1, h2, h3 {
+            font-family: 'Poppins', sans-serif;
+            font-weight: 500;
+            margin-bottom: 15px;
+            color: #111;
+        }
+
+        /* Set base h1 size, but override in header */
+        h1 { font-size: 2.2rem; }
+        h2 { font-size: 1.8rem; }
+        p {
+            font-size: 1.1rem;
+            color: #444;
+            margin-bottom: 25px;
+        }
+
+        /* "Fuzzy glow" text for questions */
+        .glow-text {
+            font-size: 1.9rem; /* Reduced from 2.3rem */
+            font-weight: 600;
+            text-shadow: 0 0 12px rgba(74, 85, 162, 0.15), 0 0 2px rgba(100, 110, 200, 0.1);
+            line-height: 1.4;
+        }
+
+        /* --- BUTTONS & FORMS --- */
+        .button-grid {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            width: 100%;
+            margin-top: 20px;
+        }
+        
+        .btn {
+            font-family: 'Inter', sans-serif;
+            font-weight: 500;
+            font-size: 1rem;
+            width: 100%;
+            max-width: 400px;
+            padding: 16px 30px;
+            cursor: pointer;
+            border-radius: 10px;
+            border: 1px solid #EAEAEA;
+            background-color: #FAFAFA;
+            color: #222;
+            transition: all 0.2s ease-in-out;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn:hover {
+            background-color: #FFFFFF;
+            border-color: #DDD;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04);
+        }
+
+        /* Primary "Indigo" button */
+        .btn-primary {
+            background-color: #4A55A2; /* Soft Indigo */
+            color: #FFFFFF;
+            border-color: #4A55A2;
+        }
+
+        .btn-primary:hover {
+            background-color: #3e478b;
+            border-color: #3e478b;
+            box-shadow: 0 4px 15px rgba(74, 85, 162, 0.15);
+        }
+        
+        /* Disabled button for "Coming Soon" */
+        .btn-disabled {
+            background-color: #F5F5F5;
+            color: #AAA;
+            cursor: not-allowed;
+            border-color: #F0F0F0;
+        }
+        .btn-disabled:hover {
+            transform: none;
+            box-shadow: none;
+        }
+        
+        /* New Skip Button */
+        .skip-container {
+            margin-top: 25px;
+            text-align: center;
+        }
+        
+        .btn-skip {
+            background: none;
+            border: none;
+            color: #555;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.95rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: color 0.2s;
+            padding: 10px;
+        }
+        
+        .btn-skip:hover {
+            color: #000;
+        }
+        
+        /* --- Form Elements --- */
+        .learn-form {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            align-items: center;
+        }
+        
+        .input-field {
+            font-family: 'Inter', sans-serif;
+            font-size: 1rem;
+            width: 100%;
+            max-width: 400px;
+            padding: 16px;
+            border-radius: 10px;
+            border: 1px solid #DDD;
+            background-color: #FFF;
+        }
+        .input-field:focus {
+            outline: none;
+            border-color: #4A55A2;
+            box-shadow: 0 0 0 3px rgba(74, 85, 162, 0.1);
+        }
+        
+        hr {
+            border: none;
+            border-top: 1px solid #EEE;
+            margin: 30px 0;
+        }
+        
+        /* --- LOADING OVERLAY --- */
+        #loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(252, 252, 253, 0.9);
+            display: none; /* Hidden by default */
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            backdrop-filter: blur(3px);
+            -webkit-backdrop-filter: blur(3px);
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+        
+        #loading-overlay.visible {
+            display: flex;
+            opacity: 1;
+        }
+
+        .loader-spinner {
+            border: 6px solid #f3f3f3;
+            border-top: 6px solid #4A55A2; /* Indigo accent */
+            border-radius: 50%;
+            width: 45px;
+            height: 45px;
+            animation: spin 1s linear infinite;
+            margin-bottom: 15px;
+        }
+        
+        #loading-overlay p {
+            font-family: 'Inter', sans-serif;
+            font-size: 1rem;
+            color: #333;
+            margin-bottom: 0;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+    </style>
+</head>
+<body>
+    
+    <div id="loading-overlay">
+        <div class="loader-spinner"></div>
+        <p>Thinking...</p>
+    </div>
+
+    <header>
+        <a href="{{ url_for('index') }}">
+            <img src="/static/logo.png" alt="Paokinator Logo" class="logo">
+        </a>
+        <h1><a href="{{ url_for('index') }}" style="text-decoration: none; color: inherit;">Paokinator</a></h1>
+    </header>
+
+    <main class="container">
+        {% block content %}{% endblock %}
+    </main>
+
+    <script>
+        // Show loading spinner on form submission
+        document.addEventListener('DOMContentLoaded', () => {
+            const forms = document.querySelectorAll('form');
+            const overlay = document.getElementById('loading-overlay');
+
+            if (overlay) {
+                forms.forEach(form => {
+                    form.addEventListener('submit', () => {
+                        // Small delay to make sure validation runs
+                        setTimeout(() => {
+                           overlay.classList.add('visible');
+                        }, 100);
+                    });
+                });
+            }
+            
+            // Hide on page "back" button press (for bfcache)
+            window.addEventListener('pageshow', (event) => {
+                if (event.persisted && overlay) {
+                    overlay.classList.remove('visible');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

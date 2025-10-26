@@ -1,0 +1,26 @@
+{% extends "layout.html" %}
+
+{% block content %}
+    <h2>Darn! Was it one of these?</h2>
+    <p>Here are the other animals I was considering.</p>
+
+    <div class="button-grid">
+        {% if predictions %}
+            {% for p in predictions %}
+                {% if p.animal %}
+                    <form action="{{ url_for('learn') }}" method="POST" style="width: 100%;">
+                        <input type="hidden" name="animal_name" value="{{ p.animal }}">
+                        <button type="submit" class="btn">{{ p.animal }}</button>
+                    </form>
+                {% endif %}
+            {% endfor %}
+        {% else %}
+            <p>I guess I have no other ideas!</p>
+        {% endif %}
+    </div>
+
+    <hr>
+    
+    <p>None of these?</p>
+    <a href="{{ url_for('this') }}" class="btn btn-primary">Teach me what it was!</a>
+{% endblock %}

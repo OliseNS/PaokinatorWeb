@@ -1,0 +1,12 @@
+{% extends "layout.html" %}
+
+{% block content %}
+    <h2>Thank you!</h2>
+    <h1 class="glow-text">I've learned about the {{ animal }}.</h1>
+    <p>I'll remember that for next time.</p>
+    
+    <div class="button-grid">
+        <a href="{{ url_for('add_questions', animal=animal) }}" class="btn">Help me learn more about the {{ animal }}?</a>
+        <a href="{{ url_for('index') }}" class="btn btn-primary">Play Again</a>
+    </div>
+{% endblock %}

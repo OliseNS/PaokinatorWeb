@@ -1,0 +1,11 @@
+{% extends "layout.html" %}
+
+{% block content %}
+    <h2>I knew it!</h2>
+    <h1 class="glow-text">It was a {{ animal }}!</h1>
+    <p>Awesome! Trust the Maths.</p>
+    
+    <div class="button-grid">
+        <a href="{{ url_for('index') }}" class="btn btn-primary">Play Again</a>
+    </div>
+{% endblock %}

@@ -1,0 +1,11 @@
+{% extends "layout.html" %}
+
+{% block content %}
+    <h2>You've beaten me!</h2>
+    <p>What was the animal you were thinking of?</p>
+
+    <form action="{{ url_for('learn') }}" method="POST" class="learn-form">
+        <input type="text" name="animal_name" placeholder="Enter animal name" required class="input-field">
+        <button type="submit" class="btn btn-primary">Teach Me</button>
+    </form>
+{% endblock %}
