@@ -275,7 +275,6 @@
     </main>
 
     <script>
-        // Show loading spinner on form submission
         document.addEventListener('DOMContentLoaded', () => {
             const forms = document.querySelectorAll('form');
             const overlay = document.getElementById('loading-overlay');
@@ -283,15 +282,11 @@
             if (overlay) {
                 forms.forEach(form => {
                     form.addEventListener('submit', () => {
-                        // Small delay to make sure validation runs
-                        setTimeout(() => {
-                           overlay.classList.add('visible');
-                        }, 100);
+                        overlay.classList.add('visible');
                     });
                 });
             }
             
-            // Hide on page "back" button press (for bfcache)
             window.addEventListener('pageshow', (event) => {
                 if (event.persisted && overlay) {
                     overlay.classList.remove('visible');
