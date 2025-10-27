@@ -6,7 +6,7 @@
     <p>I'll remember that for next time.</p>
     
     <div class="button-grid">
-        <a href="{{ url_for('add_questions', animal=animal) }}" class="btn">Help me learn more about the {{ animal }}?</a>
+        <a href="{{ url_for('add_questions', animal=animal) }}" class="btn">Add better question about {{ animal | title }}</a>
         <a href="{{ url_for('index') }}" class="btn btn-primary">Play Again</a>
     </div>
 {% endblock %}

@@ -2,9 +2,8 @@ import os
 import requests
 import json
 from dotenv import load_dotenv
-from flask import Flask, render_template, request, redirect, url_for, session, jsonify
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify, flash
 
-# Load environment variables (like GAME_SERVER_URL and a SECRET_KEY)
 load_dotenv()
 
 app = Flask(__name__, template_folder='templates')
@@ -18,6 +17,15 @@ GAME_SERVER_URL = os.getenv('GAME_SERVER_URL')
 if not GAME_SERVER_URL:
     app.logger.critical("GAME_SERVER_URL environment variable is not set. The application will not be able to contact the game server.")
 
+# NEW: Fuzzy map to convert user answers to numbers for feature suggestions
+FUZZY_MAP = {
+    'yes': 1.0,
+    'probably': 0.75,
+    'sometimes': 0.5,
+    'rarely': 0.25,
+    'no': 0.0
+}
+
 # --- Helper Function ---
 
 def get_game_server_data(endpoint):
@@ -25,11 +33,12 @@ def get_game_server_data(endpoint):
     if not GAME_SERVER_URL:
         return {"error": "Game server is not configured."}
     try:
-        response = requests.get(f"{GAME_SERVER_URL}{endpoint}")
+        url = f"{GAME_SERVER_URL.rstrip('/')}{endpoint}"
+        response = requests.get(url)
         response.raise_for_status()
         return response.json()
     except requests.exceptions.RequestException as e:
-        app.logger.exception(f"Failed to fetch data from upstream server: {endpoint}")
+        app.logger.exception(f"Failed to fetch data from upstream server: {url}")
         return {"error": "Upstream game server request failed", "details": str(e)}
 
 def post_game_server_data(endpoint, data):
@@ -37,37 +46,52 @@ def post_game_server_data(endpoint, data):
     if not GAME_SERVER_URL:
         return {"error": "Game server is not configured."}
     try:
-        response = requests.post(f"{GAME_SERVER_URL}{endpoint}", json=data)
+        url = f"{GAME_SERVER_URL.rstrip('/')}{endpoint}"
+        response = requests.post(url, json=data)
         response.raise_for_status()
         return response.json()
     except requests.exceptions.RequestException as e:
-        app.logger.exception(f"Failed to post data to upstream server: {endpoint}")
+        app.logger.exception(f"Failed to post data to upstream server: {url}")
         return {"error": "Upstream game server request failed", "details": str(e)}
 
 # --- Page Routes ---
 
 @app.route('/')
 def index():
-    """Serves the main Home Page (category selection)."""
+    """Serves the main Home Page (domain selection)."""
     # Clear any old session data
     session.clear()
-    return render_template('index.html')
+    
+    # NEW: Fetch available domains from the backend
+    data = get_game_server_data('/domains')
+    if data.get('error'):
+        app.logger.error(f"Could not fetch domains: {data.get('details')}")
+        return render_template('error.html', message="Could not fetch game domains from server.")
+        
+    domains = data.get('domains', ['animals']) # Default to 'animals' if fetch fails
+    
+    return render_template('index.html', domains=domains)
 
 @app.route('/start', methods=['POST'])
 def start_game():
     """
     Starts a new game session on the game server, stores the
-    session_id in the Flask session, and redirects to the play page.
+    session_id and domain_name in the Flask session, and redirects to the play page.
     """
     if not GAME_SERVER_URL:
         return render_template('error.html', message="Game server is not configured.")
         
-    data = post_game_server_data('/start', {})
+    # MODIFIED: Send the selected domain_name to the /start endpoint
+    domain_name = request.form.get('domain_name', 'animals')
+    payload = {"domain_name": domain_name}
+    data = post_game_server_data('/start', payload)
     
     if data and data.get('session_id'):
         session['game_session_id'] = data['session_id']
+        session['domain_name'] = data['domain_name'] # NEW: Store domain in session
         return redirect(url_for('play_game'))
     else:
+        app.logger.error(f"Could not start game. Response: {data}")
         return render_template('error.html', message="Could not start a new game session.")
 
 @app.route('/play')
@@ -102,25 +126,10 @@ def answer():
     DEPRECATED: This was the old form-based route.
     Kept for reference, but /api/answer is used by play.html now.
     """
-    game_session_id = session.get('game_session_id')
-    if not game_session_id:
-        return redirect(url_for('index'))
-
-    payload = {
-        "feature": request.form.get('feature'),
-        "answer": request.form.get('answer'),
-        "animal_name": request.form.get('animal_name') if request.form.get('animal_name') else None
-    }
-    
-    data = post_game_server_data(f"/answer/{game_session_id}", payload)
-
-    if data.get('status') == 'guess_correct':
-        return redirect(url_for('win', animal=data.get('animal')))
-    
     return redirect(url_for('play_game'))
 
 
-# --- NEW API ROUTE ---
+# --- API ROUTE ---
 @app.route('/api/answer', methods=['POST'])
 def api_answer():
     """
@@ -131,7 +140,6 @@ def api_answer():
     if not game_session_id:
         return jsonify({"error": "No game session"}), 400
 
-    # Get data from JSON payload sent by JavaScript
     req_data = request.json
     payload = {
         "feature": req_data.get('feature'),
@@ -144,7 +152,8 @@ def api_answer():
 
     if answer_response.get('status') == 'guess_correct':
         # 2. If the sneaky guess was right, tell the client to redirect
-        return jsonify({"redirect_url": url_for('win', animal=answer_response.get('animal'))})
+        # MODIFIED: Redirect to /confirm_win to properly log the win
+        return jsonify({"redirect_url": url_for('confirm_win_route', animal=answer_response.get('animal'))})
     
     if answer_response.get('error'):
         return jsonify({"error": answer_response.get('details', 'Failed to post answer')}), 500
@@ -153,31 +162,33 @@ def api_answer():
     next_game_state = get_game_server_data(f"/question/{game_session_id}")
 
     if next_game_state.get('error'):
-        # Session might have expired
         return jsonify({"redirect_url": url_for('error', message=f"Your session has expired or an error occurred. ({next_game_state.get('details')})")})
 
-    # 4. Store session data just like the /play route does
     if next_game_state.get('top_predictions'):
         session['top_predictions'] = json.dumps(next_game_state['top_predictions'])
         
     if next_game_state.get('guess'):
         session['last_guess'] = next_game_state['guess']
     
-    # 5. Return the new game state to the client
     return jsonify(next_game_state)
-# --- END NEW API ROUTE ---
 
 
 @app.route('/guess_result', methods=['POST'])
 def guess_result():
     """Handles the user's "Yes" or "No" to the AI's final guess."""
     response = request.form.get('response')
+    animal = request.form.get('guess')
     
     if response == 'yes':
-        animal = request.form.get('guess')
-        return redirect(url_for('win', animal=animal))
+        # MODIFIED: Redirect to /confirm_win to properly log the win
+        return redirect(url_for('confirm_win_route', animal=animal))
     else:
-        # User said "No", redirect to the "is it this?" list
+        # User said "No", reject the guess on the backend
+        game_session_id = session.get('game_session_id')
+        if game_session_id:
+            post_game_server_data(f"/reject/{game_session_id}", {"animal_name": animal})
+        
+        # Redirect to the "is it this?" list
         return redirect(url_for('is_it_this'))
 
 @app.route('/isitthis')
@@ -193,7 +204,6 @@ def is_it_this():
         # Filter out the guess they already rejected
         filtered_predictions = [p for p in predictions if p.get('animal') and p.get('animal').lower() != (last_guess or '').lower()]
     except json.JSONDecodeError:
-        predictions = []
         filtered_predictions = []
     
     return render_template('isitthis.html', predictions=filtered_predictions)
@@ -212,41 +222,156 @@ def learn():
         
     animal_name = request.form.get('animal_name')
     if not animal_name:
-        # This could happen if they came from /isitthis
-        # but didn't pick one
         return redirect(url_for('this'))
 
+    # The backend /learn endpoint automatically gets domain from session
     post_game_server_data(f"/learn/{game_session_id}", {"animal_name": animal_name})
     
-    return redirect(url_for('thank_you', animal=animal_name))
+    # MODIFIED: Pass domain to thank_you page
+    domain_name = session.get('domain_name', 'animals')
+    return redirect(url_for('thank_you', animal=animal_name, domain=domain_name))
 
-@app.route('/win')
-def win():
-    """Shows the "I won!" page."""
+# NEW: Route to handle confirming a win from the /isitthis list
+@app.route('/confirm_win/<animal_name>')
+def confirm_win_from_list(animal_name):
+    """
+    Confirms a win when the user selects an animal
+    from the 'is it this' list.
+    """
+    return redirect(url_for('confirm_win_route', animal=animal_name))
+
+# MODIFIED: Renamed /win to /confirm_win_route to avoid conflict with template name
+@app.route('/confirm_win')
+def confirm_win_route():
+    """
+    Logs the win on the backend, then shows the "I won!" page.
+    This is now the single point of entry for a confirmed win.
+    """
     animal = request.args.get('animal', 'your animal')
-    session.clear() # Game is over, clear session
-    return render_template('win.html', animal=animal)
+    game_session_id = session.get('game_session_id')
+    domain_name = session.get('domain_name', 'animals')
+
+    if game_session_id:
+        # MODIFIED: Call POST /win/{session_id} to log the suggestion
+        post_game_server_data(f"/win/{game_session_id}", {"animal_name": animal})
+        session.pop('game_session_id', None) # Clear only game_id, keep domain
+    
+    return render_template('win.html', animal=animal, domain=domain_name)
 
 @app.route('/thank_you')
 def thank_you():
     """Shows the "Thanks for teaching me" page."""
     animal = request.args.get('animal', 'that')
-    session.clear() # Game is over, clear session
-    return render_template('thank_you.html', animal=animal)
+    domain_name = request.args.get('domain', 'animals')
+    session.pop('game_session_id', None) # Clear only game_id, keep domain
+    return render_template('thank_you.html', animal=animal, domain=domain_name)
 
 @app.route('/add_questions/<animal>')
 def add_questions(animal):
     """Page to add new questions for a learned animal."""
-    return render_template('add_questions.html', animal=animal)
+    domain_name = session.get('domain_name', 'animals') # Get domain from session
+    if not domain_name:
+        flash("Your session has expired, please start over.", "error")
+        return redirect(url_for('index'))
+        
+    # NEW: Fetch other items from this domain to ask questions about
+    # This assumes an endpoint /items_for_questions/<domain> exists on the game server
+    other_items_data = get_game_server_data(f"/items_for_questions/{domain_name}")
+    
+    other_animals = []
+    if other_items_data and not other_items_data.get('error'):
+        # Filter out the current animal from the list, just in case
+        other_animals = [
+            item for item in other_items_data.get('items', []) 
+            if item.lower() != animal.lower()
+        ]
+        # You could limit the list size here, e.g., other_animals = other_animals[:5]
+        
+    return render_template(
+        'add_questions.html', 
+        animal=animal, 
+        domain=domain_name,
+        other_animals=other_animals  # Pass the new list to the template
+    )
 
 @app.route('/submit_question', methods=['POST'])
 def submit_question():
-    """Stub route for the 'add questions' feature."""
-    animal = request.form.get('animal')
-    question = request.form.get('question')
-    # In a real app, you'd POST this to a new backend endpoint
-    app.logger.info(f"User suggested question for {animal}: {question}")
-    return render_template('feature_soon.html', animal=animal)
+    """
+    MODIFIED: This route now submits MULTIPLE feature suggestions
+    based on the new form, one for each animal provided.
+    """
+    try:
+        # 1. Read common data from the form
+        domain_name = request.form.get('domain_name')
+        item_name = request.form.get('animal') # This is the main animal
+        feature_name = request.form.get('feature_name')
+        question_text = request.form.get('question_text')
+        
+        if not all([domain_name, item_name, feature_name, question_text]):
+            flash("All fields (feature, question, and main answer) are required.", "error")
+            return redirect(url_for('add_questions', animal=item_name))
+
+        # 2. Loop through all form data to find answers
+        payloads_to_submit = []
+        main_answer_provided = False
+
+        for key, answer_value in request.form.items():
+            if key.startswith('answer_for_'):
+                # Extract the animal name from the key: "answer_for_Lion" -> "Lion"
+                current_item_name = key[len('answer_for_'):]
+                
+                # Skip "I Don't Know"
+                if answer_value == 'idk':
+                    continue
+                    
+                # Convert answer to fuzzy value
+                fuzzy_value = FUZZY_MAP.get(answer_value)
+                if fuzzy_value is None:
+                    # This shouldn't happen with the select, but good to check
+                    flash(f"Invalid answer '{answer_value}' for {current_item_name}.", "error")
+                    continue
+                
+                # Check if this is the main animal's answer
+                if current_item_name.lower() == item_name.lower():
+                    main_answer_provided = True
+
+                # Construct payload for the backend
+                payload = {
+                    "domain_name": domain_name,
+                    "feature_name": feature_name,
+                    "question_text": question_text,
+                    "item_name": current_item_name,
+                    "fuzzy_value": fuzzy_value
+                }
+                payloads_to_submit.append(payload)
+
+        # 3. Validate that the main animal's answer was provided (as required by user)
+        if not main_answer_provided:
+            flash(f"You must provide a valid answer for {item_name}.", "error")
+            return redirect(url_for('add_questions', animal=item_name))
+            
+        # 4. Post each valid payload to the backend
+        errors = []
+        success_count = 0
+        for payload in payloads_to_submit:
+            response = post_game_server_data('/suggest_feature', payload)
+            if response.get('status') != 'ok':
+                errors.append(f"Could not submit for {payload['item_name']}: {response.get('message', 'Unknown error')}")
+            else:
+                success_count += 1
+        
+        if errors:
+            # If there were errors, flash them but still proceed
+            flash(f"Successfully submitted {success_count} features. Errors: {'; '.join(errors)}", "warning")
+        else:
+            flash(f"Successfully submitted {success_count} new feature facts!", "success")
+        
+        # 5. Redirect to thank you page
+        return redirect(url_for('thank_you', animal=item_name, domain=domain_name))
+            
+    except Exception as e:
+        app.logger.exception("Failed to submit question")
+        return render_template('error.html', message=f"An internal error occurred: {e}")
     
 @app.route('/error')
 def error():

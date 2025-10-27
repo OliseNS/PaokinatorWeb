@@ -97,6 +97,41 @@
             line-height: 1.4;
         }
 
+        /* --- FLASH MESSAGES (NEW) --- */
+        .flash-messages {
+            width: 100%;
+            margin-bottom: 15px;
+        }
+        
+        .flash {
+            padding: 15px;
+            border-radius: 10px;
+            font-weight: 500;
+            margin-bottom: 10px;
+            background-color: #f0f0f0;
+            border: 1px solid #ddd;
+            color: #333;
+            text-align: left;
+        }
+        
+        .flash.error {
+            background-color: #fde8e8;
+            border-color: #f7baba;
+            color: #b71c1c;
+        }
+        
+        .flash.success {
+            background-color: #e8f5e9;
+            border-color: #b8e0bb;
+            color: #1b5e20;
+        }
+        
+        .flash.warning {
+            background-color: #fff8e1;
+            border-color: #ffecb3;
+            color: #6f4f00;
+        }
+
         /* --- BUTTONS & FORMS --- */
         .button-grid {
             display: flex;
@@ -207,6 +242,38 @@
             border-top: 1px solid #EEE;
             margin: 30px 0;
         }
+
+        /* --- NEW QUESTION FORM STYLES --- */
+        .animal-answer-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            max-width: 400px;
+            margin-bottom: 10px;
+        }
+        .animal-answer-row label {
+            font-weight: 500;
+            font-size: 1.05rem;
+            text-align: left;
+            flex-basis: 45%; /* Give space for label */
+            padding-right: 10px;
+        }
+        .animal-answer-row select {
+            flex-basis: 55%;
+            /* Steal styles from .input-field */
+            font-family: 'Inter', sans-serif;
+            font-size: 1rem;
+            padding: 12px 16px; /* Slightly smaller padding */
+            border-radius: 10px;
+            border: 1px solid #DDD;
+            background-color: #FFF;
+        }
+        .animal-answer-row select:focus {
+             outline: none;
+            border-color: #4A55A2;
+            box-shadow: 0 0 0 3px rgba(74, 85, 162, 0.1);
+        }
         
         /* --- LOADING OVERLAY --- */
         #loading-overlay {
@@ -271,6 +338,16 @@
     </header>
 
     <main class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-messages">
+                {% for category, message in messages %}
+                    <p class="flash {{ category }}">{{ message }}</p>
+                {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
         {% block content %}{% endblock %}
     </main>
 
