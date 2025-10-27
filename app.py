@@ -98,7 +98,10 @@ def play_game():
 
 @app.route('/answer', methods=['POST'])
 def answer():
-    """Handles a user's answer to a question."""
+    """
+    DEPRECATED: This was the old form-based route.
+    Kept for reference, but /api/answer is used by play.html now.
+    """
     game_session_id = session.get('game_session_id')
     if not game_session_id:
         return redirect(url_for('index'))
@@ -106,18 +109,64 @@ def answer():
     payload = {
         "feature": request.form.get('feature'),
         "answer": request.form.get('answer'),
-        # Handle sneaky guess logic if it was part of the state
         "animal_name": request.form.get('animal_name') if request.form.get('animal_name') else None
     }
     
     data = post_game_server_data(f"/answer/{game_session_id}", payload)
 
     if data.get('status') == 'guess_correct':
-        # The AI's sneaky guess was right!
         return redirect(url_for('win', animal=data.get('animal')))
     
-    # Otherwise, just loop back to the play page for the next question
     return redirect(url_for('play_game'))
+
+
+# --- NEW API ROUTE ---
+@app.route('/api/answer', methods=['POST'])
+def api_answer():
+    """
+    Handles a user's answer via JSON and returns the next game state as JSON,
+    preventing a full page reload.
+    """
+    game_session_id = session.get('game_session_id')
+    if not game_session_id:
+        return jsonify({"error": "No game session"}), 400
+
+    # Get data from JSON payload sent by JavaScript
+    req_data = request.json
+    payload = {
+        "feature": req_data.get('feature'),
+        "answer": req_data.get('answer'),
+        "animal_name": req_data.get('animal_name')
+    }
+
+    # 1. Post the answer to the game server
+    answer_response = post_game_server_data(f"/answer/{game_session_id}", payload)
+
+    if answer_response.get('status') == 'guess_correct':
+        # 2. If the sneaky guess was right, tell the client to redirect
+        return jsonify({"redirect_url": url_for('win', animal=answer_response.get('animal'))})
+    
+    if answer_response.get('error'):
+        return jsonify({"error": answer_response.get('details', 'Failed to post answer')}), 500
+
+    # 3. If not, get the next question/game state
+    next_game_state = get_game_server_data(f"/question/{game_session_id}")
+
+    if next_game_state.get('error'):
+        # Session might have expired
+        return jsonify({"redirect_url": url_for('error', message=f"Your session has expired or an error occurred. ({next_game_state.get('details')})")})
+
+    # 4. Store session data just like the /play route does
+    if next_game_state.get('top_predictions'):
+        session['top_predictions'] = json.dumps(next_game_state['top_predictions'])
+        
+    if next_game_state.get('guess'):
+        session['last_guess'] = next_game_state['guess']
+    
+    # 5. Return the new game state to the client
+    return jsonify(next_game_state)
+# --- END NEW API ROUTE ---
+
 
 @app.route('/guess_result', methods=['POST'])
 def guess_result():
@@ -142,7 +191,7 @@ def is_it_this():
     try:
         predictions = json.loads(top_predictions_json)
         # Filter out the guess they already rejected
-        filtered_predictions = [p for p in predictions if p.get('animal') and p.get('animal').lower() != last_guess.lower()]
+        filtered_predictions = [p for p in predictions if p.get('animal') and p.get('animal').lower() != (last_guess or '').lower()]
     except json.JSONDecodeError:
         predictions = []
         filtered_predictions = []
