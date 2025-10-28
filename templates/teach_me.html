@@ -1,0 +1,45 @@
+{% extends "layout.html" %}
+
+{% block content %}
+    <h2>Teach Me About {{ animal | title }}!</h2>
+    <p>You know this {{ domain | lower }}, right? Answer these 5 quick questions to help me learn more about the <strong>{{ animal }}</strong>.</p>
+
+    <form action="{{ url_for('submit_teaching') }}" method="POST" class="learn-form" style="max-width: 450px; margin: 0 auto;">
+        
+        <input type="hidden" name="animal_name" value="{{ animal }}">
+        <input type="hidden" name="domain_name" value="{{ domain }}">
+
+        {% if features %}
+            {% for feature in features %}
+            <div class="animal-answer-row" style="flex-direction: column; align-items: flex-start; gap: 8px; margin-bottom: 20px; width: 100%;">
+                
+                <!-- Store feature data in hidden inputs -->
+                <input type="hidden" name="feature_name_{{ loop.index0 }}" value="{{ feature.feature_name }}">
+                <input type="hidden" name="question_{{ loop.index0 }}" value="{{ feature.question }}">
+
+                <!-- Display the question -->
+                <label for="answer_{{ loop.index0 }}" style="font-weight: 600; font-size: 1.1rem; color: #111;">
+                    {{ loop.index }}. {{ feature.question }}
+                </label>
+                
+                <!-- Answer select box -->
+                <select name="answer_{{ loop.index0 }}" id="answer_{{ loop.index0 }}" class="input-field" style="width: 100%;">
+                    <option value="idk" selected>I Don't Know</option>
+                    <option value="yes">Yes / Definitely</option>
+                    <option value="probably">Probably</option>
+                    <option value="sometimes">Sometimes / Maybe</option>
+                    <option value="rarely">Rarely</option>
+                    <option value="no">No / Not at all</option>
+                </select>
+            </div>
+            {% endfor %}
+            
+            <button type="submit" class="btn btn-primary" style="margin-top: 20px;">Submit Answers</button>
+        
+        {% else %}
+            <p>I couldn't find any questions to ask about the {{ animal }}.</p>
+            <a href="{{ url_for('index') }}" class="btn">Back to Home</a>
+        {% endif %}
+
+    </form>
+{% endblock %}

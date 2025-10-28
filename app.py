@@ -372,7 +372,105 @@ def submit_question():
     except Exception as e:
         app.logger.exception("Failed to submit question")
         return render_template('error.html', message=f"An internal error occurred: {e}")
+
+# --- NEW ROUTE for Data Collection ---
+@app.route('/teach_me/<animal>')
+def teach_me(animal):
+    """
+    Shows a page with 5 questions for an existing animal to gather more data.
+    """
+    domain_name = session.get('domain_name', 'animals')
+    if not domain_name:
+        flash("Your session has expired, please start over.", "error")
+        return redirect(url_for('index'))
     
+    # Call the new backend endpoint
+    endpoint = f"/features_for_data_collection/{domain_name}?item_name={animal}"
+    data = get_game_server_data(endpoint)
+    
+    if data.get('error'):
+        app.logger.error(f"Could not fetch features for data collection: {data.get('details')}")
+        flash("Could not load questions for that animal.", "error")
+        return redirect(url_for('index'))
+    
+    features = data.get('features', [])
+    
+    return render_template(
+        'teach_me.html',
+        animal=animal,
+        domain=domain_name,
+        features=features
+    )
+
+# --- NEW ROUTE to handle submission from /teach_me ---
+@app.route('/submit_teaching', methods=['POST'])
+def submit_teaching():
+    """
+    Submits the 5 answers from the /teach_me page.
+    This re-uses the /suggest_feature backend endpoint.
+    """
+    try:
+        domain_name = request.form.get('domain_name')
+        animal_name = request.form.get('animal_name')
+
+        if not domain_name or not animal_name:
+            flash("Your session or data was invalid. Please try again.", "error")
+            return redirect(url_for('index'))
+
+        payloads_to_submit = []
+        
+        # Loop based on index, assuming up to 5 features
+        for i in range(5):
+            answer_key = f'answer_{i}'
+            feature_key = f'feature_name_{i}'
+            question_key = f'question_{i}'
+            
+            if feature_key not in request.form:
+                continue # This loop index didn't exist
+
+            answer_value = request.form.get(answer_key)
+            feature_name = request.form.get(feature_key)
+            question_text = request.form.get(question_key)
+
+            # Skip "I Don't Know"
+            if answer_value == 'idk':
+                continue
+                
+            # Convert answer to fuzzy value
+            fuzzy_value = FUZZY_MAP.get(answer_value)
+            
+            if fuzzy_value is not None:
+                payload = {
+                    "domain_name": domain_name,
+                    "feature_name": feature_name,
+                    "question_text": question_text,
+                    "item_name": animal_name,
+                    "fuzzy_value": fuzzy_value
+                }
+                payloads_to_submit.append(payload)
+
+        # Post each valid payload to the backend
+        errors = []
+        success_count = 0
+        for payload in payloads_to_submit:
+            response = post_game_server_data('/suggest_feature', payload)
+            if response.get('status') != 'ok':
+                errors.append(f"Could not submit for {payload['feature_name']}: {response.get('message', 'Unknown error')}")
+            else:
+                success_count += 1
+        
+        if errors:
+            flash(f"Successfully submitted {success_count} answers. Errors: {'; '.join(errors)}", "warning")
+        else:
+            flash(f"Thank you! Successfully submitted {success_count} new facts!", "success")
+        
+        # Redirect to thank you page
+        return redirect(url_for('thank_you', animal=animal_name, domain=domain_name))
+
+    except Exception as e:
+        app.logger.exception("Failed to submit teaching data")
+        return render_template('error.html', message=f"An internal error occurred: {e}")
+
 @app.route('/error')
 def error():
     """A generic error page."""
