@@ -53,6 +53,8 @@
             justify-content: center;
             /* 2. Add a gap between the logo and title */
             gap: 15px; 
+            /* NEW: Add relative positioning for mod link */
+            position: relative;
         }
         
         header img.logo {
@@ -69,6 +71,26 @@
             color: #333;
             /* 4. Remove default margin to align with logo */
             margin: 0; 
+        }
+        
+        /* NEW: Style for Mod Panel link */
+        .mod-link {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: #555;
+            text-decoration: none;
+            background: #f4f4f5;
+            padding: 6px 12px;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+        }
+        .mod-link:hover {
+            background: #e4e4e7;
+            color: #111;
         }
         /* --- END HEADER UPDATES --- */
 
@@ -335,6 +357,9 @@
             <img src="{{ url_for('static', filename='logo.png') }}" alt="Paokinator Logo" class="logo">
         </a>
         <h1><a href="{{ url_for('index') }}" style="text-decoration: none; color: inherit;">Paokinator</a></h1>
+        
+        <!-- NEW: Link to Mod Panel -->
+        <a href="{{ url_for('moderator.mod_panel') }}" class="mod-link">Mod Panel</a>
     </header>
 
     <main class="container">

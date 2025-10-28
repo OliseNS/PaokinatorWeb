@@ -1,0 +1,17 @@
+{% extends "layout.html" %}
+
+{% block content %}
+    <h2>Moderator Login</h2>
+    <p>You say you are mod right?</p>
+
+    <form action="{{ url_for('moderator.login') }}" method="POST" class="learn-form" style="max-width: 400px; margin: 0 auto;">
+        
+        <label for="username" style="text-align: left; width: 100%; font-weight: 500; margin-bottom: -5px;">Username</label>
+        <input type="text" id="username" name="username" required class="input-field">
+        
+        <label for="password" style="text-align: left; width: 100%; font-weight: 500; margin-bottom: -5px; margin-top: 10px;">Password</label>
+        <input type="password" id="password" name="password" required class="input-field">
+
+        <button type="submit" class="btn btn-primary" style="margin-top: 25px;">Prove It!!!</button>
+    </form>
+{% endblock %}
