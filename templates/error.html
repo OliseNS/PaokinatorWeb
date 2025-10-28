@@ -1,0 +1,15 @@
+{% extends "layout.html" %}
+
+{% block content %}
+    <h2>Something Went Wrong</h2>
+    <h1 class="glow-text">Oops!</h1>
+    
+    <!-- Display the error message passed from Flask -->
+    <p style="background-color: #fde8e8; border: 1px solid #f7baba; color: #b71c1c; padding: 15px; border-radius: 10px; max-width: 400px; margin: 0 auto 25px auto;">
+        {{ message | default('An unknown error occurred.') }}
+    </p>
+    
+    <div class="button-grid">
+        <a href="{{ url_for('index') }}" class="btn btn-primary">Go to Home Page</a>
+    </div>
+{% endblock %}
