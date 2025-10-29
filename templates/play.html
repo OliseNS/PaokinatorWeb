@@ -2,111 +2,79 @@
 
 {% block content %}
 
-<!-- 
-  This div wraps the game content. 
-  JavaScript will replace the HTML inside this div.
--->
 <div id="game-content">
 
     {% if data.should_guess and data.guess %}
-        <!-- 
-          INITIAL STATE: GUESS
-          This is a standard form. Submitting it WILL cause a page load,
-          which is what we want at the end of the game.
-        -->
         <h2>My Guess Is...</h2>
         <h1 class="glow-text">Is it a {{ data.guess }}?</h1>
         <p>I'm feeling pretty confident about this one!</p>
 
-        <form action="{{ url_for('guess_result') }}" method="POST" class="button-grid">
+        <form action="{{ url_for('guess_result') }}" method="POST" style="display: flex; flex-direction: column; align-items: center; gap: 12px; width: 100%;">
             <input type="hidden" name="guess" value="{{ data.guess }}">
             <button type="submit" name="response" value="yes" class="btn btn-primary">That's Right!</button>
             <button type="submit" name="response" value="no" class="btn">No, that's wrong</button>
         </form>
 
     {% elif data.question and data.feature %}
-        <!-- 
-          INITIAL STATE: QUESTION
-          This block does NOT use a <form> tag.
-          Buttons are type="button" to prevent submission.
-          JavaScript will handle the clicks.
-        -->
         <h2>Question {{ data.question_number }}</h2>
         <h1 class="glow-text">{{ data.question }}</h1>
 
-        <!-- Hidden inputs to store current state -->
         <input type="hidden" id="feature-input" name="feature" value="{{ data.feature }}">
         
         {% if data.is_sneaky_guess %}
             <input type="hidden" id="animal-name-input" name="animal_name" value="{{ data.animal_name }}">
         {% endif %}
 
-        <!-- Answer buttons -->
-        <div class="button-grid">
-            <button type="button" name="answer" value="yes" class="btn">Yes</button>
-            <button type="button" name="answer" value="usually" class="btn">Usually</button>
-            <button type="button" name="answer" value="sometimes" class="btn">Sometimes / Maybe</button>
-            <button type="button" name="answer" value="rarely" class="btn">Rarely</button>
-            <button type="button" name="answer" value="no" class="btn">No</button>
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; max-width: 450px; margin: 0 auto;">
+            <button type="button" name="answer" value="yes" class="btn" style="padding: 12px 16px;">Yes</button>
+            <button type="button" name="answer" value="usually" class="btn" style="padding: 12px 16px;">Usually</button>
+            <button type="button" name="answer" value="sometimes" class="btn" style="padding: 12px 16px; grid-column: 1 / -1;">Sometimes / Maybe</button>
+            <button type="button" name="answer" value="rarely" class="btn" style="padding: 12px 16px;">Rarely</button>
+            <button type="button" name="answer" value="no" class="btn" style="padding: 12px 16px;">No</button>
         </div>
 
-        <!-- Skip button -->
         <div class="skip-container">
-            <button type="button" name="answer" value="skip" class="btn-skip">Skip Question &rarr;</button>
+            <button type="button" name="answer" value="skip" class="btn-skip">
+                Skip Question →
+            </button>
+            <br>
+            <button type="button" class="btn-report" onclick="alert('Reporting feature coming soon!')">
+                <i class="fa-regular fa-flag"></i> Report Question
+            </button>
         </div>
     
     {% else %}
-        <!-- 
-          INITIAL STATE: OUT OF QUESTIONS
-          This is a final state, so links are fine.
-        -->
         <h2>Oh no!</h2>
         <p>I seem to have run out of questions. You've stumped me!</p>
-        <a href="{{ url_for('is_it_this') }}" class="btn btn-primary">Let's see what you had in mind...</a>
+        <div style="display: flex; justify-content: center; width: 100%;">
+            <a href="{{ url_for('is_it_this') }}" class="btn btn-primary">Let's see what you had in mind...</a>
+        </div>
     {% endif %}
 
 </div>
 
-<!-- 
-  This script provides the client-side logic to handle
-  answer clicks without reloading the page.
--->
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     const gameContent = document.getElementById('game-content');
     const overlay = document.getElementById('loading-overlay');
-    
-    // API endpoint URL from Flask
     const apiAnswerUrl = "{{ url_for('api_answer') }}";
 
-    // --- Event Listener ---
-    // Listen for clicks inside the game-content area
     gameContent.addEventListener('click', (event) => {
-        // Check if the clicked element is an answer button
         const target = event.target;
-        // We only care about buttons with name="answer"
         if (target.tagName === 'BUTTON' && target.name === 'answer') {
             handleAnswerClick(target.value);
         }
     });
 
-    // --- Fetch and Update Logic ---
     async function handleAnswerClick(answerValue) {
-        if (!overlay) {
-            console.error('Loading overlay not found');
-            return;
-        }
+        if (!overlay) return;
         
-        // 1. Show loading spinner
         overlay.classList.add('visible');
 
-        // 2. Get current state from hidden inputs
         const featureEl = document.getElementById('feature-input');
         const animalNameEl = document.getElementById('animal-name-input');
 
         if (!featureEl) {
-            // This can happen if the user double-clicks
-            console.warn('Feature input not found. Ignoring click.');
             overlay.classList.remove('visible');
             return;
         }
@@ -118,7 +86,6 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         try {
-            // 3. Send answer to the new API endpoint
             const response = await fetch(apiAnswerUrl, {
                 method: 'POST',
                 headers: {
@@ -134,23 +101,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const newData = await response.json();
 
-            // 4. Check if the server wants us to redirect
             if (newData.redirect_url) {
-                // This is a final state (win, lose, error)
-                // The overlay will hide on page navigation
                 window.location.href = newData.redirect_url;
                 return;
             }
 
-            // 5. If no redirect, update the UI with the new state
             renderGameUpdate(newData);
 
         } catch (error) {
             console.error('Fetch error:', error);
             gameContent.innerHTML = `<p style="color: red;">An error occurred. Please <a href="{{ url_for('index') }}">start over</a>.</p>`;
         } finally {
-            // 6. Hide loading spinner
-            // Add a small delay so it doesn't flash jarringly
             setTimeout(() => {
                 if (overlay) {
                     overlay.classList.remove('visible');
@@ -159,28 +120,21 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- UI Rendering Function ---
-    // This function rebuilds the HTML inside #game-content
     function renderGameUpdate(data) {
         let newHtml = '';
 
         if (data.should_guess && data.guess) {
-            // --- RENDER GUESS STATE ---
-            // This is a final state, so we render a real form that
-            // will navigate to the win/lose page.
             newHtml = `
                 <h2>My Guess Is...</h2>
                 <h1 class="glow-text">Is it a ${escapeHTML(data.guess)}?</h1>
                 <p>I'm feeling pretty confident about this one!</p>
-                <form action="{{ url_for('guess_result') }}" method="POST" class="button-grid">
+                <form action="{{ url_for('guess_result') }}" method="POST" style="display: flex; flex-direction: column; align-items: center; gap: 12px; width: 100%;">
                     <input type="hidden" name="guess" value="${escapeHTML(data.guess)}">
                     <button type="submit" name="response" value="yes" class="btn btn-primary">That's Right!</button>
                     <button type="submit" name="response" value="no" class="btn">No, that's wrong</button>
                 </form>
             `;
         } else if (data.question && data.feature) {
-            // --- RENDER QUESTION STATE ---
-            // This is the interactive state. No <form> tag.
             const sneakyGuessHtml = data.is_sneaky_guess
                 ? `<input type="hidden" id="animal-name-input" name="animal_name" value="${escapeHTML(data.animal_name)}">`
                 : '';
@@ -192,33 +146,38 @@ document.addEventListener('DOMContentLoaded', () => {
                 <input type="hidden" id="feature-input" name="feature" value="${escapeHTML(data.feature)}">
                 ${sneakyGuessHtml}
 
-                <div class="button-grid">
-                    <button type="button" name="answer" value="yes" class="btn">Yes</button>
-                    <button type="button" name="answer" value="usually" class="btn">Usually</button>
-                    <button type="button" name="answer" value="sometimes" class="btn">Sometimes / Maybe</button>
-                    <button type="button" name="answer" value="rarely" class="btn">Rarely</button>
-                    <button type="button" name="answer" value="no" class="btn">No</button>
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; max-width: 450px; margin: 0 auto;">
+                    <button type="button" name="answer" value="yes" class="btn" style="padding: 12px 16px;">Yes</button>
+                    <button type="button" name="answer" value="usually" class="btn" style="padding: 12px 16px;">Usually</button>
+                    <button type="button" name="answer" value="sometimes" class="btn" style="padding: 12px 16px; grid-column: 1 / -1;">Sometimes / Maybe</button>
+                    <button type="button" name="answer" value="rarely" class="btn" style="padding: 12px 16px;">Rarely</button>
+                    <button type="button" name="answer" value="no" class="btn" style="padding: 12px 16px;">No</button>
                 </div>
+                
                 <div class="skip-container">
-                    <button type="button" name="answer" value="skip" class="btn-skip">Skip Question &rarr;</button>
+                    <button type="button" name="answer" value="skip" class="btn-skip">
+                        Skip Question →
+                    </button>
+                    <br>
+                    <button type="button" class="btn-report" onclick="alert('Reporting feature coming soon!')">
+                        <i class="fa-regular fa-flag"></i> Report Question
+                    </button>
                 </div>
             `;
         } else {
-            // --- RENDER "OUT OF QUESTIONS" STATE ---
-            // This is a final state, so we render a link.
             newHtml = `
                 <h2>Oh no!</h2>
                 <p>I seem to have run out of questions. You've stumped me!</p>
-                <a href="{{ url_for('is_it_this') }}" class="btn btn-primary">Let's see what you had in mind...</a>
+                <div style="display: flex; justify-content: center; width: 100%;">
+                    <a href="{{ url_for('is_it_this') }}" class="btn btn-primary">Let's see what you had in mind...</a>
+                </div>
             `;
         }
-        // Safely update the content
         if (gameContent) {
             gameContent.innerHTML = newHtml;
         }
     }
     
-    // Helper function to prevent XSS issues when rendering text
     function escapeHTML(str) {
         if (str === null || str === undefined) return '';
         return str.toString()

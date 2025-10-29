@@ -4,28 +4,34 @@
     <h2>Help Me Learn About {{ animal | title }}</h2>
     <p>What's a good question to distinguish a <strong>{{ animal }}</strong> from other {{ domain }}?</p>
 
-    <form action="{{ url_for('submit_question') }}" method="POST" class="learn-form" style="max-width: 450px; margin: 0 auto;">
+    <form action="{{ url_for('submit_question') }}" method="POST" style="display: flex; flex-direction: column; align-items: center; width: 100%; max-width: 450px; margin: 0 auto;">
         
         <input type="hidden" name="animal" value="{{ animal }}">
         <input type="hidden" name="domain_name" value="{{ domain }}">
 
-        <label for="feature_name" style="text-align: left; width: 100%; font-weight: 500; margin-bottom: -5px;">Feature Name</label>
-        <input type="text" id="feature_name" name="feature_name" placeholder="e.g., 'has_stripes' or 'is_mammal'" required class="input-field" title="A short name for the code, no spaces.">
+        <label for="feature_name" style="text-align: left; width: 100%; font-weight: 500; margin-bottom: 4px; margin-top: 10px;">Feature Name</label>
+        <p style="font-size: 0.85rem; color: #666; text-align: left; width: 100%; margin: 0 0 8px 0;">
+            Use only lowercase letters, numbers, and underscores (e.g., <code>has_legs</code>, <code>has2legs</code>).
+        </p>
+        <input type="text" id="feature_name" name="feature_name" placeholder="e.g., 'has_stripes' or 'is_mammal'" required class="input-field" 
+               pattern="[a-z0-9_]+" 
+               title="Please use only lowercase letters, numbers, and underscores (e.g., has_legs, is_a_pet, iswild)." 
+               style="width: 100%;">
         
-        <label for="question_text" style="text-align: left; width: 100%; font-weight: 500; margin-bottom: -5px;">Question Text</label>
-        <input type="text" id="question_text" name="question_text" placeholder="e.g., 'Does it have stripes?'" required class="input-field">
+        <label for="question_text" style="text-align: left; width: 100%; font-weight: 500; margin-bottom: 8px; margin-top: 20px;">Question Text</label>
+        <input type="text" id="question_text" name="question_text" placeholder="e.g., 'Does it have stripes?'" required class="input-field" style="width: 100%;">
 
-        <div style="margin-top: 25px; margin-bottom: 15px; background: #f9f9f9; padding: 12px; border-radius: 4px; border: 1px solid #eee;">
-            <p style="text-align: left; margin: 0 0 8px 0; font-size: 0.9rem; font-weight: 500; color: #333;">
+        <div style="margin-top: 25px; margin-bottom: 15px; background: #f9f9f9; padding: 16px; border-radius: 10px; border: 1px solid #eee; width: 100%;">
+            <p style="text-align: left; margin: 0 0 12px 0; font-size: 0.9rem; font-weight: 500; color: #333;">
                 Now, please answer your new question:
             </p>
-            <blockquote id="question-display" style="text-align: left; margin: 0 0 0 10px; padding-left: 10px; font-size: 1.1rem; font-weight: 600; color: #000; border-left: 3px solid #ccc; min-height: 1.2em;">
+            <blockquote id="question-display" style="text-align: left; margin: 0; padding-left: 15px; font-size: 1.05rem; font-weight: 600; color: #000; border-left: 3px solid #4A55A2; min-height: 1.2em;">
                 "..."
             </blockquote>
         </div>
 
-        <label for="answer_for_{{ animal }}" style="text-align: left; width: 100%; font-weight: 500; margin-bottom: -5px; margin-top: 10px;">For a <strong>{{ animal | title }}</strong>, the answer is... (Required)</label>
-        <select name="answer_for_{{ animal }}" id="answer_for_{{ animal }}" required class="input-field">
+        <label for="answer_for_{{ animal }}" style="text-align: left; width: 100%; font-weight: 500; margin-bottom: 8px; margin-top: 10px;">For a <strong>{{ animal | title }}</strong>, the answer is...</label>
+        <select name="answer_for_{{ animal }}" id="answer_for_{{ animal }}" required class="input-field" style="width: 100%;">
             <option value="" disabled selected>Select an answer...</option>
             <option value="yes">Yes / Definitely</option>
             <option value="probably">Probably</option>
@@ -35,14 +41,16 @@
         </select>
         
         {% if other_animals %}
-            <hr style="width: 100%;">
-            <h3 style="font-size: 1.2rem; margin-top: 10px;">Answer for other {{ domain }}? (Optional)</h3>
-            <p style="font-size: 0.9rem; margin-bottom: 20px;">This helps me learn much faster!</p>
+            <hr style="width: 100%; margin: 30px 0;">
+            <h3 style="font-size: 1.2rem; margin-bottom: 8px; text-align: left; width: 100%;">Answer for other {{ domain }}?</h3>
+            <p style="font-size: 0.9rem; margin-bottom: 20px; text-align: left; width: 100%; color: #666;">This helps me learn much faster!</p>
 
             {% for other_animal in other_animals %}
-            <div class="animal-answer-row">
-                <label for="answer_for_{{ other_animal }}">{{ other_animal | title }}</label>
-                <select name="answer_for_{{ other_animal }}" id="answer_for_{{ other_animal }}">
+            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 15px; gap: 15px;">
+                <label for="answer_for_{{ other_animal }}" style="font-weight: 500; font-size: 1rem; text-align: left; flex: 0 0 40%; color: #333;">
+                    {{ other_animal | title }}
+                </label>
+                <select name="answer_for_{{ other_animal }}" id="answer_for_{{ other_animal }}" style="flex: 1; font-family: 'Inter', sans-serif; font-size: 1rem; padding: 12px 40px 12px 16px; border-radius: 10px; border: 2px solid #DDD; background-color: #FFF; appearance: none; background-image: url(&quot;data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e&quot;); background-repeat: no-repeat; background-position: right 12px center; background-size: 20px; cursor: pointer;">
                     <option value="idk" selected>I Don't Know</option>
                     <option value="yes">Yes</option>
                     <option value="probably">Probably</option>
@@ -54,7 +62,7 @@
             {% endfor %}
         {% endif %}
 
-        <button type="submit" class="btn btn-primary" style="margin-top: 20px;">Submit Feature</button>
+        <button type="submit" class="btn btn-primary" style="margin-top: 30px; width: 100%;">Submit Feature</button>
     </form>
 
     <script>
@@ -63,19 +71,15 @@
             const questionDisplay = document.getElementById('question-display');
 
             if (questionInput && questionDisplay) {
-                // Function to update the display
                 function updateDisplay() {
                     if (questionInput.value) {
-                        questionDisplay.textContent = '\"' + questionInput.value + '\"';
+                        questionDisplay.textContent = '"' + questionInput.value + '"';
                     } else {
                         questionDisplay.textContent = '"..."';
                     }
                 }
 
-                // Run it on input
                 questionInput.addEventListener('input', updateDisplay);
-
-                // Run it once on load in case of browser auto-fill
                 updateDisplay();
             }
         });

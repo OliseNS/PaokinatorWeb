@@ -3,24 +3,18 @@
 {% block content %}
     <h2>What would you like to explore today?</h2>
     
-    <div class="button-grid">
-        <!-- 
-          NEW: Loop over the 'domains' variable passed from app.py
-          This makes your homepage dynamic.
-        -->
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 12px; width: 100%; margin-top: 20px;">
         {% if domains %}
             {% for domain in domains %}
-            <form action="{{ url_for('start_game') }}" method="POST" style="width: 100%;">
-                <!-- Send the selected domain_name to the /start endpoint -->
+            <form action="{{ url_for('start_game') }}" method="POST" style="width: 100%; max-width: 400px;">
                 <input type="hidden" name="domain_name" value="{{ domain }}">
-                <button type="submit" class="btn btn-primary">{{ domain | title }}</button>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">{{ domain | title }}</button>
             </form>
             {% endfor %}
         {% else %}
             <p>Could not load any game domains.</p>
         {% endif %}
 
-        <!-- You can still keep your coming soon buttons -->
         <button class="btn btn-disabled" disabled>Country (Coming Soon)</button>
     </div>
 {% endblock %}

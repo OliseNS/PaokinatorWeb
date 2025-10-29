@@ -1,103 +1,108 @@
 {% extends "layout.html" %}
-<!-- This piece of code is for the moderation page and it lets the users who have a login be able to access the moderators page so that they can make changes to the items and questions-->
+
 {% block content %}
-    <h2 style="margin-bottom: 5px;">Moderator Panel</h2>
-    <p>Review suggested features and items from users.</p>
+    <h2>Moderator Panel</h2>
+    <p style="margin-bottom: 30px;">Review suggested features and items from users.</p>
 
-    <!-- Container for the two moderation tables -->
-    <div style="width: 100%; max-width: 900px; margin: 20px auto; text-align: left; display: flex; flex-direction: column; gap: 40px;">
+    <div style="width: 100%; max-width: 1000px; margin: 0 auto; display: flex; flex-direction: column; gap: 50px;">
 
-        <!-- Section for Suggested Features -->
-        <div>
-            <h3 style="font-size: 1.5rem; border-bottom: 2px solid #eee; padding-bottom: 10px;">
-                Suggested Features ({{ features | length }})
+        <!-- Suggested Features Section -->
+        <section>
+            <h3 style="font-size: 1.4rem; font-weight: 600; margin-bottom: 20px; color: #333; display: flex; align-items: center; gap: 10px;">
+                Suggested Features 
+                <span style="background: #4A55A2; color: white; padding: 4px 12px; border-radius: 20px; font-size: 0.85rem;">{{ features | length }}</span>
             </h3>
             
             {% if features %}
-                <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
-                    <thead style="background-color: #f9f9f9;">
-                        <tr>
-                            <th style="padding: 12px; border: 1px solid #ddd; text-align: left;">Feature Name</th>
-                            <th style="padding: 12px; border: 1px solid #ddd; text-align: left;">Question Text</th>
-                            <th style="padding: 12px; border: 1px solid #ddd; text-align: center;">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for feature in features %}
-                        <tr>
-                            <td style="padding: 10px; border: 1px solid #eee;">
-                                <code>{{ feature.feature_name }}</code>
-                            </td>
-                            <td style="padding: 10px; border: 1px solid #eee;">
-                                {{ feature.question_text }}
-                            </td>
-                            <td style="padding: 10px; border: 1px solid #eee; text-align: center; white-space: nowrap;">
+                <div style="display: flex; flex-direction: column; gap: 15px;">
+                    {% for feature in features %}
+                    <div style="background: white; border: 1px solid #e5e5e5; border-radius: 12px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
+                        <div style="display: flex; justify-content: space-between; align-items: start; gap: 20px;">
+                            <div style="flex-grow: 1; text-align: left;">
+                                <div style="font-family: 'Courier New', monospace; background: #f7f7f8; padding: 8px 12px; border-radius: 6px; display: inline-block; margin-bottom: 12px; font-size: 0.9rem; color: #4A55A2; font-weight: 600;">
+                                    {{ feature.feature_name }}
+                                </div>
+                                <p style="font-size: 1rem; color: #555; margin: 0; line-height: 1.5;">
+                                    {{ feature.question_text }}
+                                </p>
+                            </div>
+                            <div style="display: flex; gap: 8px; flex-shrink: 0;">
                                 <a href="{{ url_for('moderator.mod_approve_feature', feature_id=feature.id) }}" 
-                                   style="background: #e8f5e9; color: #1b5e20; padding: 5px 10px; border-radius: 5px; text-decoration: none; font-size: 0.9rem; font-weight: 500;">
-                                    Approve
+                                   style="background: #e8f5e9; color: #1b5e20; padding: 10px 18px; border-radius: 8px; text-decoration: none; font-size: 0.9rem; font-weight: 600; white-space: nowrap; transition: all 0.2s;">
+                                    ✓ Approve
                                 </a>
                                 <a href="{{ url_for('moderator.mod_reject_feature', feature_id=feature.id) }}"
-                                   style="background: #fde8e8; color: #b71c1c; padding: 5px 10px; border-radius: 5px; text-decoration: none; font-size: 0.9rem; font-weight: 500; margin-left: 5px;">
-                                    Reject
+                                   style="background: #fde8e8; color: #b71c1c; padding: 10px 18px; border-radius: 8px; text-decoration: none; font-size: 0.9rem; font-weight: 600; white-space: nowrap; transition: all 0.2s;">
+                                    ✕ Reject
                                 </a>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
             {% else %}
-                <p style="text-align: center; padding: 30px; background: #fcfcfc; border: 1px solid #f0f0f0; border-radius: 10px; margin-top: 20px;">
-                    No suggested features to review. All caught up!
-                </p>
+                <div style="text-align: center; padding: 50px 20px; background: #fafafa; border: 2px dashed #e5e5e5; border-radius: 12px;">
+                    <p style="font-size: 1.1rem; color: #888; margin: 0;">
+                        No suggested items to review. Come back later
+                    </p>
+                </div>
             {% endif %}
-        </div>
+        </section>
 
-        <!-- NEW Section for Suggested Items -->
-        <div>
-            <h3 style="font-size: 1.5rem; border-bottom: 2px solid #eee; padding-bottom: 10px;">
-                Suggested Items ({{ items | length }})
+        <!-- Suggested Items Section -->
+        <section>
+            <h3 style="font-size: 1.4rem; font-weight: 600; margin-bottom: 20px; color: #333; display: flex; align-items: center; gap: 10px;">
+                Suggested Items 
+                <span style="background: #4A55A2; color: white; padding: 4px 12px; border-radius: 20px; font-size: 0.85rem;">{{ items | length }}</span>
             </h3>
             
             {% if items %}
-                <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
-                    <thead style="background-color: #f9f9f9;">
-                        <tr>
-                            <th style="padding: 12px; border: 1px solid #ddd; text-align: left;">Item Name</th>
-                            <th style="padding: 12px; border: 1px solid #ddd; text-align: left;">Domain</th>
-                            <th style="padding: 12px; border: 1px solid #ddd; text-align: center;">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for item in items %}
-                        <tr>
-                            <td style="padding: 10px; border: 1px solid #eee; font-weight: 500;">
-                                {{ item.item_name | title }}
-                            </td>
-                            <td style="padding: 10px; border: 1px solid #eee;">
-                                <!-- We joined to get the domain name -->
-                                {{ item.domains.domain_name | title if item.domains else 'Unknown' }}
-                            </td>
-                            <td style="padding: 10px; border: 1px solid #eee; text-align: center; white-space: nowrap;">
+                <div style="display: flex; flex-direction: column; gap: 15px;">
+                    {% for item in items %}
+                    <div style="background: white; border: 1px solid #e5e5e5; border-radius: 12px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; gap: 20px;">
+                            <div style="flex-grow: 1; text-align: left;">
+                                <h4 style="font-size: 1.1rem; font-weight: 600; color: #222; margin: 0 0 8px 0;">
+                                    {{ item.item_name | title }}
+                                </h4>
+                                <p style="font-size: 0.9rem; color: #888; margin: 0;">
+                                    Domain: <span style="color: #4A55A2; font-weight: 500;">{{ item.domains.domain_name | title if item.domains else 'Unknown' }}</span>
+                                </p>
+                            </div>
+                            <div style="display: flex; gap: 8px; flex-shrink: 0;">
                                 <a href="{{ url_for('moderator.mod_approve_item', item_id=item.id) }}" 
-                                   style="background: #e8f5e9; color: #1b5e20; padding: 5px 10px; border-radius: 5px; text-decoration: none; font-size: 0.9rem; font-weight: 500;">
-                                    Approve
+                                   style="background: #e8f5e9; color: #1b5e20; padding: 10px 18px; border-radius: 8px; text-decoration: none; font-size: 0.9rem; font-weight: 600; white-space: nowrap; transition: all 0.2s;">
+                                    ✓ Approve
                                 </a>
                                 <a href="{{ url_for('moderator.mod_reject_item', item_id=item.id) }}"
-                                   style="background: #fde8e8; color: #b71c1c; padding: 5px 10px; border-radius: 5px; text-decoration: none; font-size: 0.9rem; font-weight: 500; margin-left: 5px;">
-                                    Reject
+                                   style="background: #fde8e8; color: #b71c1c; padding: 10px 18px; border-radius: 8px; text-decoration: none; font-size: 0.9rem; font-weight: 600; white-space: nowrap; transition: all 0.2s;">
+                                    ✕ Reject
                                 </a>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
             {% else %}
-                <p style="text-align: center; padding: 30px; background: #fcfcfc; border: 1px solid #f0f0f0; border-radius: 10px; margin-top: 20px;">
-                    No suggested items to review. All caught up!
-                </p>
+                <div style="text-align: center; padding: 50px 20px; background: #fafafa; border: 2px dashed #e5e5e5; border-radius: 12px;">
+                    <p style="font-size: 1.1rem; color: #888; margin: 0;">
+                        No suggested items to review. Come back later
+                    </p>
+                </div>
             {% endif %}
-        </div>
+        </section>
 
     </div>
+
+    <style>
+        a[href*="mod_approve"]:hover {
+            background: #c8e6c9 !important;
+            transform: translateY(-1px);
+        }
+        a[href*="mod_reject"]:hover {
+            background: #ffcdd2 !important;
+            transform: translateY(-1px);
+        }
+    </style>
 
 {% endblock %}
