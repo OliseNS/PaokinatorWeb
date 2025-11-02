@@ -137,7 +137,7 @@ def answer():
     return redirect(url_for('play_game'))
 
 
-# --- API ROUTE ---
+# --- API ROUTES (for JavaScript) ---
 @app.route('/api/answer', methods=['POST'])
 def api_answer():
     """
@@ -160,7 +160,6 @@ def api_answer():
 
     if answer_response.get('status') == 'guess_correct':
         # 2. If the sneaky guess was right, tell the client to redirect
-        # MODIFIED: Redirect to /confirm_win to properly log the win
         return jsonify({"redirect_url": url_for('confirm_win_route', animal=answer_response.get('animal'))})
     
     if answer_response.get('error'):
@@ -181,9 +180,70 @@ def api_answer():
     return jsonify(next_game_state)
 
 
+# --- NEW API ROUTE ---
+@app.route('/api/reject_guess', methods=['POST'])
+def api_reject_guess():
+    """
+    Handles the user clicking "No, that's wrong" on a final guess.
+    Calls the backend /reject endpoint and returns its JSON response.
+    """
+    game_session_id = session.get('game_session_id')
+    if not game_session_id:
+        return jsonify({"error": "No game session"}), 400
+    
+    req_data = request.json
+    animal_name = req_data.get('guess')
+    if not animal_name:
+        return jsonify({"error": "No animal name provided"}), 400
+    
+    # Call the backend /reject endpoint
+    reject_response = post_game_server_data(f"/reject/{game_session_id}", {"animal_name": animal_name})
+
+    if reject_response.get('error'):
+        return jsonify({"error": reject_response.get('details', 'Failed to reject guess')}), 500
+
+    # This should return {'status': 'ask_to_continue', ...}
+    return jsonify(reject_response)
+
+
+# --- NEW API ROUTE ---
+@app.route('/api/continue_game', methods=['POST'])
+def api_continue_game():
+    """
+    Handles the user clicking "Yes" to continue.
+    Calls the backend /continue endpoint and then fetches the next question.
+    """
+    game_session_id = session.get('game_session_id')
+    if not game_session_id:
+        return jsonify({"error": "No game session"}), 400
+
+    # 1. Tell the backend to continue
+    continue_response = post_game_server_data(f"/continue/{game_session_id}", {})
+    
+    if continue_response.get('status') != 'continuing':
+        return jsonify({"error": continue_response.get('details', 'Failed to set continue mode')}), 500
+
+    # 2. Get the next question
+    next_game_state = get_game_server_data(f"/question/{game_session_id}")
+    
+    if next_game_state.get('error'):
+        return jsonify({"redirect_url": url_for('error', message=f"Your session has expired or an error occurred. ({next_game_state.get('details')})")})
+    
+    # Store predictions in case this next state is a guess
+    if next_game_state.get('top_predictions'):
+        session['top_predictions'] = json.dumps(next_game_state['top_predictions'])
+    if next_game_state.get('guess'):
+        session['last_guess'] = next_game_state['guess']
+    
+    return jsonify(next_game_state)
+
+
 @app.route('/guess_result', methods=['POST'])
 def guess_result():
-    """Handles the user's "Yes" or "No" to the AI's final guess."""
+    """
+    Handles the user's "Yes" to the AI's final guess.
+    The "No" is now handled by /api/reject_guess.
+    """
     response = request.form.get('response')
     animal = request.form.get('guess')
     
@@ -191,9 +251,12 @@ def guess_result():
         # MODIFIED: Redirect to /confirm_win to properly log the win
         return redirect(url_for('confirm_win_route', animal=animal))
     else:
-        # User said "No", reject the guess on the backend
+        # This branch should no longer be hit if JS is enabled,
+        # but we'll keep it as a fallback.
         game_session_id = session.get('game_session_id')
         if game_session_id:
+            # This will return 'ask_to_continue' but the form can't handle it.
+            # It will just redirect to is_it_this, which is acceptable fallback.
             post_game_server_data(f"/reject/{game_session_id}", {"animal_name": animal})
         
         # Redirect to the "is it this?" list
