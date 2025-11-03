@@ -238,6 +238,33 @@ def api_continue_game():
     return jsonify(next_game_state)
 
 
+# --- NEW API ROUTE ---
+@app.route('/api/undo', methods=['POST'])
+def api_undo():
+    """
+    Handles the user clicking "Undo" to go back to the previous question.
+    Calls the backend /undo endpoint and returns the reverted game state.
+    """
+    game_session_id = session.get('game_session_id')
+    if not game_session_id:
+        return jsonify({"error": "No game session"}), 400
+
+    # 1. Tell the backend to undo
+    undo_response = post_game_server_data(f"/undo/{game_session_id}", {})
+    
+    if undo_response.get('error'):
+        return jsonify({"error": undo_response.get('details', 'Failed to undo')}), 500
+
+    # 2. The response *is* the reverted game state.
+    # We need to store predictions/guess in session, just like other routes do.
+    if undo_response.get('top_predictions'):
+        session['top_predictions'] = json.dumps(undo_response['top_predictions'])
+    if undo_response.get('guess'):
+        session['last_guess'] = undo_response['guess']
+    
+    return jsonify(undo_response)
+
+
 @app.route('/guess_result', methods=['POST'])
 def guess_result():
     """

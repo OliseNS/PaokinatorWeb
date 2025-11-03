@@ -177,9 +177,12 @@
         .skip-container {
             margin-top: 20px;
             text-align: center;
+            display: flex; /* ADDED: To align buttons side-by-side */
+            justify-content: center; /* ADDED: Center the buttons */
+            gap: 20px; /* ADDED: Space between buttons */
         }
         
-        .btn-skip, .btn-report {
+        .btn-skip {
             background: none;
             border: none;
             color: #666;
@@ -194,18 +197,11 @@
             gap: 6px;
         }
         
-        .btn-skip:hover, .btn-report:hover {
+        .btn-skip:hover {
             color: #000;
         }
 
-        .btn-report {
-            color: #888;
-            margin-top: 8px;
-        }
-
-        .btn-report:hover {
-            color: #d32f2f;
-        }
+        /* REMOVED: .btn-report styles */
         
         .learn-form {
             display: flex;

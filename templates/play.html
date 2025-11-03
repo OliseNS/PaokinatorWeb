@@ -5,21 +5,17 @@
 <div id="game-content">
 
     {% if data.should_guess and data.guess %}
-        <!-- This is the initial HTML for a guess -->
         <h2>My Guess Is...</h2>
         <h1 class="glow-text">Is it a {{ data.guess }}?</h1>
         <p>I'm feeling pretty confident about this one!</p>
 
-        <!-- The form is now just a container for the buttons -->
         <div id="guess-form" style="display: flex; flex-direction: column; align-items: center; gap: 12px; width: 100%;">
             <input type="hidden" id="guess-input" name="guess" value="{{ data.guess }}">
-            <!-- Note: Changed to type="button" and added IDs -->
             <button type="button" id="guess-yes" name="response" value="yes" class="btn btn-primary">That's Right!</button>
             <button type="button" id="guess-no" name="response" value="no" class="btn">No, that's wrong</button>
         </div>
 
     {% elif data.question and data.feature %}
-        <!-- This is the initial HTML for a question -->
         <h2>Question {{ data.question_number }}</h2>
         <h1 class="glow-text">{{ data.question }}</h1>
 
@@ -38,17 +34,15 @@
         </div>
 
         <div class="skip-container">
+            <button type="button" id="btn-undo" class="btn-skip" style="color: #666;">
+                <i class="fa-solid fa-rotate-left"></i> Undo
+            </button>
             <button type="button" name="answer" value="skip" class="btn-skip">
                 Skip Question →
             </button>
-            <br>
-            <button type="button" class="btn-report" onclick="alert('Reporting feature coming soon!')">
-                <i class="fa-regular fa-flag"></i> Report Question
-            </button>
-        </div>
+            </div>
     
     {% else %}
-        <!-- This is the initial HTML for game over -->
         <h2>Oh no!</h2>
         <p>I seem to have run out of questions. You've stumped me!</p>
         <div style="display: flex; justify-content: center; width: 100%;">
@@ -67,6 +61,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const apiAnswerUrl = "{{ url_for('api_answer') }}";
     const apiRejectUrl = "{{ url_for('api_reject_guess') }}";
     const apiContinueUrl = "{{ url_for('api_continue_game') }}";
+    const apiUndoUrl = "{{ url_for('api_undo') }}"; // ADDED: Undo API URL
     
     // Redirect URLs from Flask
     const winRedirectUrl = (animal) => `{{ url_for('confirm_win_route', animal='ANIMAL_PLACEHOLDER') }}`.replace('ANIMAL_PLACEHOLDER', animal);
@@ -96,6 +91,9 @@ document.addEventListener('DOMContentLoaded', () => {
         } else if (buttonId === 'continue-no') {
             // Handle "Continue? - No"
             handleContinueNoClick();
+        } else if (buttonId === 'btn-undo') { // ADDED: Undo click handler
+            // Handle "Undo"
+            handleUndoClick();
         }
     });
 
@@ -182,6 +180,28 @@ document.addEventListener('DOMContentLoaded', () => {
         window.location.href = isItThisRedirectUrl;
     }
 
+    // ADDED: New function to handle Undo
+    async function handleUndoClick() {
+        showLoading();
+        try {
+            // Call the /api/undo endpoint
+            const data = await postData(apiUndoUrl, {});
+            
+            if (data.error) {
+                // Show a non-fatal error if undo fails (e.g., no more history)
+                // You might want to flash a message instead
+                alert(data.error);
+            } else {
+                // The response is the reverted game state
+                renderGameUpdate(data);
+            }
+        } catch (error) {
+            showError(error.message);
+        } finally {
+            hideLoading();
+        }
+    }
+
     // --- Utility Functions ---
 
     async function postData(url, payload) {
@@ -254,14 +274,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
                 
                 <div class="skip-container">
+                    <button type="button" id="btn-undo" class="btn-skip" style="color: #666;">
+                        <i class="fa-solid fa-rotate-left"></i> Undo
+                    </button>
                     <button type="button" name="answer" value="skip" class="btn-skip">
                         Skip Question →
                     </button>
-                    <br>
-                    <button type="button" class="btn-report" onclick="alert('Reporting feature coming soon!')">
-                        <i class="fa-regular fa-flag"></i> Report Question
-                    </button>
-                </div>
+                    
+                    </div>
             `;
         } else {
             // This is the "Game Over - Stumped" state
