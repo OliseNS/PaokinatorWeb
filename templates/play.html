@@ -34,9 +34,11 @@
         </div>
 
         <div class="skip-container">
+            {% if data.question_number != 1 %}
             <button type="button" id="btn-undo" class="btn-skip" style="color: #666;">
                 <i class="fa-solid fa-rotate-left"></i> Undo
             </button>
+            {% endif %}
             <button type="button" name="answer" value="skip" class="btn-skip">
                 Skip Question →
             </button>
@@ -258,8 +260,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 ? `<input type="hidden" id="animal-name-input" name="animal_name" value="${escapeHTML(data.animal_name)}">`
                 : '';
 
+            // Decide whether to show the Undo button based on question_number.
+            // If question_number is exactly 1, do NOT show the Undo button.
+            const showUndo = (typeof data.question_number === 'number' && data.question_number !== 1)
+                             || (typeof data.question_number === 'string' && data.question_number !== '1');
+
+            const undoHtml = showUndo
+                ? `<button type="button" id="btn-undo" class="btn-skip" style="color: #666;">
+                        <i class="fa-solid fa-rotate-left"></i> Undo
+                   </button>`
+                : '';
+
             newHtml = `
-                <h2>Question ${data.question_number}</h2>
+                <h2>Question ${escapeHTML(data.question_number)}</h2>
                 <h1 class="glow-text">${escapeHTML(data.question)}</h1>
                 
                 <input type="hidden" id="feature-input" name="feature" value="${escapeHTML(data.feature)}">
@@ -274,9 +287,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
                 
                 <div class="skip-container">
-                    <button type="button" id="btn-undo" class="btn-skip" style="color: #666;">
-                        <i class="fa-solid fa-rotate-left"></i> Undo
-                    </button>
+                    ${undoHtml}
                     <button type="button" name="answer" value="skip" class="btn-skip">
                         Skip Question →
                     </button>
@@ -305,7 +316,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function hideLoading() {
         if (overlay) {
-             // Add a small delay so the loader is visible for at least a moment
+            // Add a small delay so the loader is visible for at least a moment
             setTimeout(() => {
                 overlay.classList.remove('visible');
             }, 100);
