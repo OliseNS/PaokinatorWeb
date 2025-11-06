@@ -7,9 +7,9 @@
     
     <div class="button-grid">
         <!-- NEW BUTTON ADDED HERE -->
-        <a href="{{ url_for('teach_me', animal=animal) }}" class="btn">You know about {{ animal | title }}, right? Teach me!!!</a>
+        <a href="{{ url_for('teach_me', animal=animal) }}" class="btn">Help me beat the next player. Please teach me about {{ animal | title }}!</a>
 
-        <a href="{{ url_for('add_questions', animal=animal) }}" class="btn">Add better question about {{ animal | title }}</a>
+        <a href="{{ url_for('add_questions', animal=animal) }}" class="btn">You know about {{ animal | title }}, please suggest better questions that I can ask.</a>
         <a href="{{ url_for('index') }}" class="btn btn-primary">Play Again</a>
     </div>
 {% endblock %}
