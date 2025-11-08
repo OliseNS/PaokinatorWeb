@@ -1,26 +1,13 @@
 {% macro render_answer_buttons() %}
-<div style="display: flex; flex-direction: column; gap: 12px; max-width: 400px; margin: 0 auto; width: 100%;">
-    <!-- Primary answers in a 2-column grid -->
-    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
-        <button type="button" name="answer" value="yes" class="btn" style="padding: 14px 16px;">Yes</button>
-        <button type="button" name="answer" value="no" class="btn" style="padding: 14px 16px;">No</button>
+<div style="max-width: 320px; margin: 0 auto; width: 100%;">
+    <!-- Main answer buttons grouped together -->
+    <div style="background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border: 1px solid #e5e5e5;">
+        <button type="button" name="answer" value="yes" class="btn" style="padding: 14px 20px; font-size: 0.95rem; border: none; border-radius: 0; border-bottom: 1px solid #f0f0f0; box-shadow: none;">Yes</button>
+        <button type="button" name="answer" value="usually" class="btn" style="padding: 14px 20px; font-size: 0.95rem; border: none; border-radius: 0; border-bottom: 1px solid #f0f0f0; box-shadow: none;">Usually</button>
+        <button type="button" name="answer" value="sometimes" class="btn" style="padding: 14px 20px; font-size: 0.95rem; border: none; border-radius: 0; border-bottom: 1px solid #f0f0f0; box-shadow: none;">Partly</button>
+        <button type="button" name="answer" value="rarely" class="btn" style="padding: 14px 20px; font-size: 0.95rem; border: none; border-radius: 0; border-bottom: 1px solid #f0f0f0; box-shadow: none;">Rarely</button>
+        <button type="button" name="answer" value="no" class="btn" style="padding: 14px 20px; font-size: 0.95rem; border: none; border-radius: 0; border-bottom: 1px solid #f0f0f0; box-shadow: none;">No</button>
+        <button type="button" name="answer" value="skip" class="btn" style="padding: 14px 20px; font-size: 0.95rem; border: none; border-radius: 0; box-shadow: none; background-color: #f8f9fa; color: #666;">¯\_(ツ)_/¯ I don't know</button>
     </div>
-    
-    <!-- Middle ground answers in a 2-column grid -->
-    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
-        <button type="button" name="answer" value="usually" class="btn" style="padding: 14px 16px;">Usually</button>
-        <button type="button" name="answer" value="rarely" class="btn" style="padding: 14px 16px;">Rarely</button>
-    </div>
-    
-    <!-- Partly as its own full-width button -->
-    <button type="button" name="answer" value="sometimes" class="btn" style="padding: 14px 16px;">Partly</button>
-    
-    <!-- Separator line -->
-    <div style="border-top: 1px solid #e5e5e5; margin: 8px 0;"></div>
-    
-    <!-- "I don't know" button - visually separated and distinct -->
-    <button type="button" name="answer" value="skip" class="btn" style="padding: 14px 16px; background-color: #f8f9fa; color: #666; border-color: #e0e0e0;">
-        ¯\_(ツ)_/¯ I don't know
-    </button>
 </div>
 {% endmacro %}
