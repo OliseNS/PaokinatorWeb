@@ -1,0 +1,26 @@
+{% macro render_answer_buttons() %}
+<div style="display: flex; flex-direction: column; gap: 12px; max-width: 400px; margin: 0 auto; width: 100%;">
+    <!-- Primary answers in a 2-column grid -->
+    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
+        <button type="button" name="answer" value="yes" class="btn" style="padding: 14px 16px;">Yes</button>
+        <button type="button" name="answer" value="no" class="btn" style="padding: 14px 16px;">No</button>
+    </div>
+    
+    <!-- Middle ground answers in a 2-column grid -->
+    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
+        <button type="button" name="answer" value="usually" class="btn" style="padding: 14px 16px;">Usually</button>
+        <button type="button" name="answer" value="rarely" class="btn" style="padding: 14px 16px;">Rarely</button>
+    </div>
+    
+    <!-- Partly as its own full-width button -->
+    <button type="button" name="answer" value="sometimes" class="btn" style="padding: 14px 16px;">Partly</button>
+    
+    <!-- Separator line -->
+    <div style="border-top: 1px solid #e5e5e5; margin: 8px 0;"></div>
+    
+    <!-- "I don't know" button - visually separated and distinct -->
+    <button type="button" name="answer" value="skip" class="btn" style="padding: 14px 16px; background-color: #f8f9fa; color: #666; border-color: #e0e0e0;">
+        <i class="fa-solid fa-circle-question" style="margin-right: 6px;"></i>I don't know
+    </button>
+</div>
+{% endmacro %}

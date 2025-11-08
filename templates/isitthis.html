@@ -1,7 +1,7 @@
 {% extends "layout.html" %}
 
 {% block content %}
-    <h2>Sheesh! Was it one of these?</h2>
+    <h2>I'm not sure. Was it one of these?</h2>
 
     <div style="display: flex; flex-direction: column; align-items: center; gap: 12px; width: 100%; margin-top: 20px;">
         {% if predictions %}
@@ -13,15 +13,15 @@
                 {% endif %}
             {% endfor %}
         {% else %}
-            <p>I guess I have no other ideas :(</p>
+            <p>I have no other ideas. You've stumped me!</p>
         {% endif %}
     </div>
 
     <hr>
     
-    <p>None of these?</p>
+    <p>If your animal is not on the list, you can teach me!</p>
     <div style="display: flex; justify-content: center; width: 100%;">
-        <a href="{{ url_for('this') }}" class="btn btn-primary">Teach me what it was!</a>
+        <a href="{{ url_for('this') }}" class="btn btn-primary">Teach Me</a>
     </div>
 
-    {% endblock %}
+{% endblock %}

@@ -1,11 +1,12 @@
 {% extends "layout.html" %}
+{% from "_form_helpers.html" import render_answer_buttons %}
 
 {% block content %}
 
 <div id="game-content">
 
     {% if data.should_guess and data.guess %}
-        <h2>My Guess Is...</h2>
+        <h2>My guess is...</h2>
         <h1 class="glow-text">Is it a {{ data.guess }}?</h1>
         <p>I'm feeling pretty confident about this one!</p>
 
@@ -25,13 +26,7 @@
             <input type="hidden" id="animal-name-input" name="animal_name" value="{{ data.animal_name }}">
         {% endif %}
 
-        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; max-width: 450px; margin: 0 auto;">
-            <button type="button" name="answer" value="yes" class="btn" style="padding: 12px 16px;">Yes</button>
-            <button type="button" name="answer" value="usually" class="btn" style="padding: 12px 16px;">Usually</button>
-            <button type="button" name="answer" value="sometimes" class="btn" style="padding: 12px 16px; grid-column: 1 / -1;">Sometimes / Maybe</button>
-            <button type="button" name="answer" value="rarely" class="btn" style="padding: 12px 16px;">Rarely</button>
-            <button type="button" name="answer" value="no" class="btn" style="padding: 12px 16px;">No</button>
-        </div>
+        {{ render_answer_buttons() }}
 
         <div class="skip-container">
             {% if data.question_number != 1 %}
@@ -39,10 +34,8 @@
                 <i class="fa-solid fa-rotate-left"></i> Undo
             </button>
             {% endif %}
-            <button type="button" name="answer" value="skip" class="btn-skip">
-                Skip Question →
-            </button>
-            </div>
+            {# The "I don't know" button is now rendered inside the macro #}
+        </div>
     
     {% else %}
         <h2>Oh no!</h2>
@@ -59,47 +52,36 @@ document.addEventListener('DOMContentLoaded', () => {
     const gameContent = document.getElementById('game-content');
     const overlay = document.getElementById('loading-overlay');
     
-    // API URLs from Flask
     const apiAnswerUrl = "{{ url_for('api_answer') }}";
     const apiRejectUrl = "{{ url_for('api_reject_guess') }}";
     const apiContinueUrl = "{{ url_for('api_continue_game') }}";
-    const apiUndoUrl = "{{ url_for('api_undo') }}"; // ADDED: Undo API URL
+    const apiUndoUrl = "{{ url_for('api_undo') }}";
     
-    // Redirect URLs from Flask
     const winRedirectUrl = (animal) => `{{ url_for('confirm_win_route', animal='ANIMAL_PLACEHOLDER') }}`.replace('ANIMAL_PLACEHOLDER', animal);
     const isItThisRedirectUrl = "{{ url_for('is_it_this') }}";
     const startOverRedirectUrl = "{{ url_for('index') }}";
 
-    // Use event delegation for all buttons inside gameContent
     gameContent.addEventListener('click', (event) => {
         const target = event.target.closest('button');
-        if (!target) return; // Click wasn't on a button
+        if (!target) return;
 
         const buttonName = target.name;
         const buttonId = target.id;
 
         if (buttonName === 'answer') {
-            // Handle question answers (Yes, No, Sometimes, etc.)
             handleAnswerClick(target.value);
         } else if (buttonId === 'guess-yes') {
-            // Handle "That's Right!"
             handleGuessYesClick();
         } else if (buttonId === 'guess-no') {
-            // Handle "No, that's wrong"
             handleGuessNoClick();
         } else if (buttonId === 'continue-yes') {
-            // Handle "Continue? - Yes"
             handleContinueYesClick();
         } else if (buttonId === 'continue-no') {
-            // Handle "Continue? - No"
             handleContinueNoClick();
-        } else if (buttonId === 'btn-undo') { // ADDED: Undo click handler
-            // Handle "Undo"
+        } else if (buttonId === 'btn-undo') {
             handleUndoClick();
         }
     });
-
-    // --- Button Handler Functions ---
 
     async function handleAnswerClick(answerValue) {
         showLoading();
@@ -135,7 +117,6 @@ document.addEventListener('DOMContentLoaded', () => {
         showLoading();
         const guessEl = document.getElementById('guess-input');
         const animal = guessEl ? guessEl.value : 'your animal';
-        // This is a win, so we just redirect
         window.location.href = winRedirectUrl(animal);
     }
 
@@ -150,10 +131,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const payload = { guess: guessEl.value };
 
         try {
-            // Call the new /api/reject_guess endpoint
             const data = await postData(apiRejectUrl, payload);
-            // The response will be {status: 'ask_to_continue', ...}
-            // Pass this directly to renderGameUpdate
             renderGameUpdate(data);
         } catch (error) {
             showError(error.message);
@@ -165,9 +143,7 @@ document.addEventListener('DOMContentLoaded', () => {
     async function handleContinueYesClick() {
         showLoading();
         try {
-            // Call the new /api/continue_game endpoint
             const data = await postData(apiContinueUrl, {});
-            // This response will be the *next question*
             renderGameUpdate(data);
         } catch (error) {
             showError(error.message);
@@ -178,23 +154,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function handleContinueNoClick() {
         showLoading();
-        // User doesn't want to continue, redirect to the "is it this?" list
         window.location.href = isItThisRedirectUrl;
     }
 
-    // ADDED: New function to handle Undo
     async function handleUndoClick() {
         showLoading();
         try {
-            // Call the /api/undo endpoint
             const data = await postData(apiUndoUrl, {});
             
             if (data.error) {
-                // Show a non-fatal error if undo fails (e.g., no more history)
-                // You might want to flash a message instead
                 alert(data.error);
             } else {
-                // The response is the reverted game state
                 renderGameUpdate(data);
             }
         } catch (error) {
@@ -203,8 +173,6 @@ document.addEventListener('DOMContentLoaded', () => {
             hideLoading();
         }
     }
-
-    // --- Utility Functions ---
 
     async function postData(url, payload) {
         try {
@@ -226,11 +194,11 @@ document.addEventListener('DOMContentLoaded', () => {
             throw new Error('Could not connect to the server. Please try again.');
         }
     }
+    // This is the improved renderGameUpdate function to replace in play.html
 
     function renderGameUpdate(data) {
         let newHtml = '';
 
-        // --- NEW: Handle 'ask_to_continue' status ---
         if (data.status === 'ask_to_continue') {
             newHtml = `
                 <h2>Darn!</h2>
@@ -242,11 +210,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
             `;
         }
-        // --- END NEW ---
         
         else if (data.should_guess && data.guess) {
             newHtml = `
-                <h2>My Guess Is...</h2>
+                <h2>My guess is...</h2>
                 <h1 class="glow-text">Is it a ${escapeHTML(data.guess)}?</h1>
                 <p>I'm feeling pretty confident about this one!</p>
                 <div id="guess-form" style="display: flex; flex-direction: column; align-items: center; gap: 12px; width: 100%;">
@@ -260,15 +227,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 ? `<input type="hidden" id="animal-name-input" name="animal_name" value="${escapeHTML(data.animal_name)}">`
                 : '';
 
-            // Decide whether to show the Undo button based on question_number.
-            // If question_number is exactly 1, do NOT show the Undo button.
             const showUndo = (typeof data.question_number === 'number' && data.question_number !== 1)
-                             || (typeof data.question_number === 'string' && data.question_number !== '1');
+                            || (typeof data.question_number === 'string' && data.question_number !== '1');
 
             const undoHtml = showUndo
-                ? `<button type="button" id="btn-undo" class="btn-skip" style="color: #666;">
+                ? `<button type="button" id="btn-undo" class="btn-skip">
                         <i class="fa-solid fa-rotate-left"></i> Undo
-                   </button>`
+                </button>`
                 : '';
 
             newHtml = `
@@ -278,24 +243,36 @@ document.addEventListener('DOMContentLoaded', () => {
                 <input type="hidden" id="feature-input" name="feature" value="${escapeHTML(data.feature)}">
                 ${sneakyGuessHtml}
 
-                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; max-width: 450px; margin: 0 auto;">
-                    <button type="button" name="answer" value="yes" class="btn" style="padding: 12px 16px;">Yes</button>
-                    <button type="button" name="answer" value="usually" class="btn" style="padding: 12px 16px;">Usually</button>
-                    <button type="button" name="answer" value="sometimes" class="btn" style="padding: 12px 16px; grid-column: 1 / -1;">Sometimes / Maybe</button>
-                    <button type="button" name="answer" value="rarely" class="btn" style="padding: 12px 16px;">Rarely</button>
-                    <button type="button" name="answer" value="no" class="btn" style="padding: 12px 16px;">No</button>
+                <div style="display: flex; flex-direction: column; gap: 12px; max-width: 400px; margin: 0 auto; width: 100%;">
+                    <!-- Primary answers in a 2-column grid -->
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
+                        <button type="button" name="answer" value="yes" class="btn" style="padding: 14px 16px;">Yes</button>
+                        <button type="button" name="answer" value="no" class="btn" style="padding: 14px 16px;">No</button>
+                    </div>
+                    
+                    <!-- Middle ground answers in a 2-column grid -->
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
+                        <button type="button" name="answer" value="usually" class="btn" style="padding: 14px 16px;">Usually</button>
+                        <button type="button" name="answer" value="rarely" class="btn" style="padding: 14px 16px;">Rarely</button>
+                    </div>
+                    
+                    <!-- Partly as its own full-width button -->
+                    <button type="button" name="answer" value="sometimes" class="btn" style="padding: 14px 16px;">Partly</button>
+                    
+                    <!-- Separator line -->
+                    <div style="border-top: 1px solid #e5e5e5; margin: 8px 0;"></div>
+                    
+                    <!-- "I don't know" button - visually separated and distinct -->
+                    <button type="button" name="answer" value="skip" class="btn" style="padding: 14px 16px; background-color: #f8f9fa; color: #666; border-color: #e0e0e0;">
+                        <i class="fa-solid fa-circle-question" style="margin-right: 6px;"></i>I don't know
+                    </button>
                 </div>
-                
+
                 <div class="skip-container">
                     ${undoHtml}
-                    <button type="button" name="answer" value="skip" class="btn-skip">
-                        Skip Question →
-                    </button>
-                    
-                    </div>
+                </div>
             `;
         } else {
-            // This is the "Game Over - Stumped" state
             newHtml = `
                 <h2>Oh no!</h2>
                 <p>I seem to have run out of questions. You've stumped me!</p>
@@ -309,14 +286,13 @@ document.addEventListener('DOMContentLoaded', () => {
             gameContent.innerHTML = newHtml;
         }
     }
-
+        
     function showLoading() {
         if (overlay) overlay.classList.add('visible');
     }
 
     function hideLoading() {
         if (overlay) {
-            // Add a small delay so the loader is visible for at least a moment
             setTimeout(() => {
                 overlay.classList.remove('visible');
             }, 100);
