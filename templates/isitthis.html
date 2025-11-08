@@ -1,8 +1,7 @@
 {% extends "layout.html" %}
 
 {% block content %}
-    <h2>Darn! Was it one of these?</h2>
-    <p>Here are the other items I was considering.</p>
+    <h2>Sheesh! Was it one of these?</h2>
 
     <div style="display: flex; flex-direction: column; align-items: center; gap: 12px; width: 100%; margin-top: 20px;">
         {% if predictions %}
@@ -14,7 +13,7 @@
                 {% endif %}
             {% endfor %}
         {% else %}
-            <p>I guess I have no other ideas!</p>
+            <p>I guess I have no other ideas :(</p>
         {% endif %}
     </div>
 

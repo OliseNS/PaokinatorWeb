@@ -4,24 +4,29 @@
     <h2>Help Me Learn About {{ animal | title }}</h2>
     <p>What's a good question to distinguish a <strong>{{ animal }}</strong> from other {{ domain }}?</p>
 
-    <form action="{{ url_for('submit_question') }}" method="POST" style="display: flex; flex-direction: column; align-items: center; width: 100%; max-width: 450px; margin: 0 auto;">
+    <form action="{{ url_for('submit_question') }}" method="POST" novalidate style="display: flex; flex-direction: column; align-items: center; width: 100%; max-width: 450px; margin: 0 auto;">
         
         <input type="hidden" name="animal" value="{{ animal }}">
         <input type="hidden" name="domain_name" value="{{ domain }}">
 
         <label for="feature_name" style="text-align: left; width: 100%; font-weight: 500; margin-bottom: 4px; margin-top: 10px;">Feature Name</label>
         <p style="font-size: 0.85rem; color: #666; text-align: left; width: 100%; margin: 0 0 8px 0;">
-            Use only lowercase letters, numbers, and underscores (e.g., <code>has_legs</code>, <code>has2legs</code>).
+            Use only lowercase letters, numbers, and underscores (e.g., <code>is_in_africa</code>, <code>has2legs</code>).
         </p>
         <input type="text" id="feature_name" name="feature_name" placeholder="e.g., 'has_stripes' or 'is_mammal'" required class="input-field" 
                pattern="[a-z0-9_]+" 
                title="Please use only lowercase letters, numbers, and underscores (e.g., has_legs, is_a_pet, iswild)." 
-               style="width: 100%;">
+               style="width: 100%;"
+               autocomplete="off"
+               oninput="this.value = this.value.toLowerCase();">
         
-        <label for="question_text" style="text-align: left; width: 100%; font-weight: 500; margin-bottom: 8px; margin-top: 20px;">Question Text</label>
-        <input type="text" id="question_text" name="question_text" placeholder="e.g., 'Does it have stripes?'" required class="input-field" style="width: 100%;">
-
-        <div style="margin-top: 25px; margin-bottom: 15px; background: #f9f9f9; padding: 16px; border-radius: 10px; border: 1px solid #eee; width: 100%;">
+        <label for="question_text" style="text-align: left; width: 100%; font-weight: 500; margin-bottom: 4px; margin-top: 20px;">Question Text</label>
+        <p id="word-count-msg" style="font-size: 0.85rem; color: #666; text-align: left; width: 100%; margin: 0 0 8px 0;">
+            Max 10 words
+        </p>
+        <input type="text" id="question_text" name="question_text" placeholder="e.g., 'Does it have stripes?'" required class="input-field" 
+               style="width: 100%;"
+               maxlength="70"> <div style="margin-top: 25px; margin-bottom: 15px; background: #f9f9f9; padding: 16px; border-radius: 10px; border: 1px solid #eee; width: 100%;">
             <p style="text-align: left; margin: 0 0 12px 0; font-size: 0.9rem; font-weight: 500; color: #333;">
                 Now, please answer your new question:
             </p>
@@ -34,7 +39,7 @@
         <select name="answer_for_{{ animal }}" id="answer_for_{{ animal }}" required class="input-field" style="width: 100%;">
             <option value="" disabled selected>Select an answer...</option>
             <option value="yes">Yes / Definitely</option>
-            <option value="probably">Probably</option>
+            <option value="probably">Usually</option>
             <option value="sometimes">Sometimes / Maybe</option>
             <option value="rarely">Rarely</option>
             <option value="no">No / Not at all</option>
@@ -69,18 +74,58 @@
         document.addEventListener('DOMContentLoaded', function() {
             const questionInput = document.getElementById('question_text');
             const questionDisplay = document.getElementById('question-display');
+            const wordCountMsg = document.getElementById('word-count-msg');
+            const form = document.querySelector('form');
 
-            if (questionInput && questionDisplay) {
-                function updateDisplay() {
-                    if (questionInput.value) {
-                        questionDisplay.textContent = '"' + questionInput.value + '"';
+            // --- Question Text: Live Update & Word Count ---
+            if (questionInput && questionDisplay && wordCountMsg) {
+                
+                function updateQuestionUI() {
+                    const text = questionInput.value;
+                    
+                    // 1. Update live "blockquote" display
+                    if (text) {
+                        questionDisplay.textContent = '"' + text + '"';
                     } else {
                         questionDisplay.textContent = '"..."';
                     }
+
+                    // 2. Update word count
+                    const words = text.trim() === '' ? 0 : text.trim().split(/\s+/).length;
+
+                    wordCountMsg.textContent = words + ' / 10 words';
+
+                    if (words > 10) {
+                        wordCountMsg.style.color = '#D93025'; // Red
+                        wordCountMsg.style.fontWeight = 'bold';
+                    } else {
+                        wordCountMsg.style.color = '#666'; // Default color
+                        wordCountMsg.style.fontWeight = 'normal';
+                    }
                 }
 
-                questionInput.addEventListener('input', updateDisplay);
-                updateDisplay();
+                questionInput.addEventListener('input', updateQuestionUI);
+                updateQuestionUI(); // Run on page load
+            }
+
+            // --- Form Validation on Submit ---
+            if (form) {
+                form.addEventListener('submit', function(event) {
+                    const text = questionInput.value;
+                    const words = text.trim() === '' ? 0 : text.trim().split(/\s+/).length;
+                    
+                    if (words > 10) {
+                        event.preventDefault(); // Stop submission
+                        alert('Error: Your question must be 10 words or less. You have ' + words + ' words.');
+                        questionInput.focus();
+                    }
+                    
+                    if (words === 0 && questionInput.required) {
+                         event.preventDefault(); // Stop submission
+                         alert('Error: Please enter a question.');
+                         questionInput.focus();
+                    }
+                });
             }
         });
     </script>

@@ -1,13 +1,16 @@
 {% extends "layout.html" %}
 
 {% block content %}
-    <h2>I knew it!</h2>
-    <h1 class="glow-text">It was a {{ animal }}!</h1>
+    <h2>I knew it, you were thinking of...</h2>
+
+    <h1 style="font-weight: bold; font-size: 2.5rem; color: #2C3E50; text-align: center; margin-top: 0.5rem; margin-bottom: 0.5rem;">{{ animal }}</h1>
     <p>Awesome! Trust the Maths.</p>
     
     <div style="display: flex; flex-direction: column; align-items: center; gap: 12px; width: 100%; margin-top: 20px;">
-        <a href="{{ url_for('teach_me', animal=animal) }}" class="btn">You know about {{ animal | title }}, right? Teach me!!!</a>
-        <a href="{{ url_for('add_questions', animal=animal) }}" class="btn">Add better question about {{ animal | title }}</a>
+        <!-- NEW BUTTON ADDED HERE -->
+        <a href="{{ url_for('teach_me', animal=animal) }}" class="btn">Help me beat the next player. Please teach me about {{ animal | title }}!</a>
+
+        <a href="{{ url_for('add_questions', animal=animal) }}" class="btn">You know about {{ animal | title }}, please suggest better questions that I can ask.</a>
         <a href="{{ url_for('index') }}" class="btn btn-primary">Play Again</a>
     </div>
 

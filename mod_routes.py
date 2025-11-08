@@ -3,16 +3,10 @@ import logging
 from dotenv import load_dotenv
 from flask import Blueprint, render_template, request, redirect, url_for, session, flash
 from supabase import create_client, Client
-# TODO: (Security) Import hashing functions when ready to secure passwords
-# from werkzeug.security import check_password_hash 
-
-# Load environment variables from .env
 load_dotenv()
 
-# --- NEW: Supabase Client Setup ---
-# This is specific to the moderator panel
 SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY") # This should be your 'anon' key
+SUPABASE_KEY = os.getenv("SUPABASE_KEY") 
 
 # Initialize the Supabase client
 supabase: Client = None
@@ -49,11 +43,6 @@ def login():
             if response.data:
                 mod = response.data
                 
-                # --- SECURITY WARNING ---
-                # This is a plain-text password check and is NOT SECURE.
-                # You should store hashed passwords and use check_password_hash()
-                # e.g., if check_password_hash(mod['password_hash'], password):
-                # ------------------------
                 if mod["password_hash"] == password:
                     session['is_mod'] = True
                     session['mod_username'] = mod['username']
