@@ -212,8 +212,7 @@ document.addEventListener('DOMContentLoaded', () => {
         else if (data.should_guess && data.guess) {
             newHtml = `
                 <h2>My guess is...</h2>
-                <h1 class="glow-text">Is it a ${escapeHTML(data.guess)}?</h1>
-                <p>I'm feeling pretty confident about this one!</p>
+                <h1 class="glow-text">${escapeHTML(data.guess)}?</h1>
                 <div id="guess-form" style="display: flex; flex-direction: column; align-items: center; gap: 12px; width: 100%;">
                     <input type="hidden" id="guess-input" name="guess" value="${escapeHTML(data.guess)}">
                     <button type="button" id="guess-yes" name="response" value="yes" class="btn btn-primary">That's Right!</button>
