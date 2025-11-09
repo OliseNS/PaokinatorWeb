@@ -20,11 +20,11 @@
                 
                 <div class="answer-buttons" data-group="{{ loop.index0 }}" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; width: 100%;">
                     <button type="button" class="btn answer-btn" data-value="yes">Yes</button>
-                    <button type="button" class="btn answer-btn" data-value="usually">Usually</button>
-                    <button type="button" class="btn answer-btn" data-value="sometimes" style="grid-column: 1 / -1;">Partly</button>
-                    <button type="button" class="btn answer-btn" data-value="rarely">Rarely</button>
+                    <button type="button" class="btn answer-btn" data-value="usually">Mostly</button>
+                    <button type="button" class="btn answer-btn" data-value="sometimes" style="grid-column: 1 / -1;">Sort of</button>
+                    <button type="button" class="btn answer-btn" data-value="rarely">Not really</button>
                     <button type="button" class="btn answer-btn" data-value="no">No</button>
-                    <button type="button" class="btn answer-btn" data-value="idk" style="grid-column: 1 / -1; background-color: #f0f0f0;">I Don't Know</button>
+                    <button type="button" class="btn answer-btn" data-value="idk" style="grid-column: 1 / -1; background-color: #f0f0f0;"> ¯\_(ツ)_/¯ I Don't Know</button>
                 </div>
                 <input type="hidden" name="answer_{{ loop.index0 }}" id="answer_{{ loop.index0 }}" value="idk">
             </div>
