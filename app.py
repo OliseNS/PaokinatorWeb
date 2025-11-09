@@ -21,16 +21,15 @@ GAME_SERVER_URL = os.getenv('GAME_SERVER_URL')
 if not GAME_SERVER_URL:
     app.logger.critical("GAME_SERVER_URL environment variable is not set. The application will not be able to contact the game server.")
 
-# --- Supabase Client Setup has been REMOVED from this file ---
-# --- It now lives in mod_routes.py ---
-
-
-# NEW: Fuzzy map to convert user answers to numbers for feature suggestions
 FUZZY_MAP = {
     'yes': 1.0,
-    'probably': 0.75,
-    'sometimes': 0.5,
-    'rarely': 0.25,
+    'mostly': 0.75,    
+    'probably': 0.75,  
+    'usually': 0.75,     
+    'sort of': 0.5,      
+    'sometimes': 0.5,    
+    'not really': 0.25,  
+    'rarely': 0.25,      
     'no': 0.0
 }
 
