@@ -62,13 +62,15 @@ def format_fuzzy(value):
 
 # --- Helper Function ---
 
-def get_game_server_data(endpoint):
+# MODIFIED: Now accepts 'params' for safe URL parameter encoding
+def get_game_server_data(endpoint, params=None):
     """Helper to make GET requests to the game server."""
     if not GAME_SERVER_URL:
         return {"error": "Game server is not configured."}
     try:
         url = f"{GAME_SERVER_URL.rstrip('/')}{endpoint}"
-        response = requests.get(url)
+        # Pass params to requests.get to handle encoding automatically
+        response = requests.get(url, params=params)
         response.raise_for_status()
         return response.json()
     except requests.exceptions.RequestException as e:
@@ -347,7 +349,11 @@ def learn():
         return redirect(url_for('this'))
 
     # MODIFIED: Call the new /report endpoint
-    report_data = get_game_server_data(f"/report/{game_session_id}?item_name={animal_name}&is_new=true")
+    # Use 'params' dict for safe encoding of item_name
+    report_data = get_game_server_data(
+        f"/report/{game_session_id}",
+        params={"item_name": animal_name, "is_new": True}
+    )
     
     # Clear the game session ID
     session.pop('game_session_id', None)
@@ -382,7 +388,11 @@ def confirm_win_route():
 
     if game_session_id:
         # MODIFIED: Call GET /report/{session_id} to log the win and get report
-        report_data = get_game_server_data(f"/report/{game_session_id}?item_name={animal}&is_new=false")
+        # Use 'params' dict for safe encoding of item_name
+        report_data = get_game_server_data(
+            f"/report/{game_session_id}",
+            params={"item_name": animal, "is_new": False}
+        )
         
         if report_data and not report_data.get('error'):
             game_report = report_data
@@ -533,9 +543,10 @@ def teach_me(animal):
         flash("Your session has expired, please start over.", "error")
         return redirect(url_for('index'))
     
-    # Call the new backend endpoint
-    endpoint = f"/features_for_data_collection/{domain_name}?item_name={animal}"
-    data = get_game_server_data(endpoint)
+    # MODIFIED: Call the backend endpoint using the 'params' arg
+    endpoint = f"/features_for_data_collection/{domain_name}"
+    params = {"item_name": animal}
+    data = get_game_server_data(endpoint, params=params)
     
     if data.get('error'):
         app.logger.error(f"Could not fetch features for data collection: {data.get('details')}")
