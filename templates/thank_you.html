@@ -7,7 +7,9 @@
     
     <p>I'll remember that for next time.</p>
     
-    <div class="button-grid">
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 12px; width: 100%; margin-top: 20px;">
+        <a href="{{ url_for('teach_me', animal=animal) }}" class="btn">Help me learn more about the {{ animal | title }}!</a>
+        <a href="{{ url_for('add_questions', animal=animal) }}" class="btn">Suggest a question for the {{ animal | title }}.</a>
         <a href="{{ url_for('index') }}" class="btn btn-primary">Play Again</a>
     </div>
 {% endblock %}
