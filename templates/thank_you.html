@@ -11,43 +11,14 @@
         <a href="{{ url_for('teach_me', animal=animal) }}" class="btn">Help me learn more about the {{ animal | title }}!</a>
         <a href="{{ url_for('add_questions', animal=animal) }}" class="btn">Suggest a question for the {{ animal | title }}.</a>
         
-        <!-- NEW: Show Report Button -->
+        <!-- MODIFIED: Changed button to a link -->
         {% if game_report %}
-        <button id="show-report-btn" class="btn btn-secondary">View Game Report</button>
+        <a href="{{ url_for('game_report') }}" id="show-report-btn" class="btn btn-secondary">View Game Report</a>
         {% endif %}
         
         <a href="{{ url_for('index') }}" class="btn btn-primary">Play Again</a>
     </div>
 
-    <!-- NEW: Report Modal -->
-    {% if game_report %}
-    <div id="report-modal-overlay" class="modal-overlay">
-      <div class="modal-content">
-        <button id="close-report-btn" class="modal-close-btn">&times;</button>
-        <h2>Game Report for: {{ game_report.item_name | title }}</h2>
-        <p>{% if game_report.is_new_item %}You taught me a new one!{% else %}I guessed it correctly!{% endif %}</p>
-        
-        <table class="report-table">
-          <thead>
-            <tr>
-              <th>Question</th>
-              <th>Your Answer</th>
-              <th>Consensus Answer</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for q in game_report.questions %}
-            <tr>
-              <td>{{ q.question }}</td>
-              <!-- Use the new format_fuzzy filter -->
-              <td>{{ q.user_answer | format_fuzzy }}</td>
-              <td>{{ q.consensus_answer | format_fuzzy }}</td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    </div>
-    {% endif %}
+    <!-- REMOVED: Report Modal -->
 
 {% endblock %}

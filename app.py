@@ -36,18 +36,28 @@ FUZZY_MAP = {
 # NEW: Reverse map for displaying fuzzy values in the report
 FUZZY_MAP_REVERSE = {
     1.0: "Yes",
-    0.75: "Mostly / Probably",
-    0.5: "Sometimes / Sort of",
-    0.25: "Not Really / Rarely",
+    0.75: "Mostly",
+    0.5: "Sort of",
+    0.25: "Rarely",
     0.0: "No"
 }
+
+# NEW: Pre-sorted list of keys for the filter
+FUZZY_VALUES_SORTED = sorted(FUZZY_MAP_REVERSE.keys(), reverse=True) # [1.0, 0.75, 0.5, 0.25, 0.0]
 
 # NEW: Template filter to make fuzzy values human-readable
 @app.template_filter('format_fuzzy')
 def format_fuzzy(value):
+    """
+    Finds the closest human-readable string for a given
+    fuzzy value (e.g., 0.91 -> "Yes", 0.375 -> "Rarely").
+    """
     if value is None:
         return "N/A"
-    return FUZZY_MAP_REVERSE.get(value, f"Raw: {value}")
+    
+    # Find the key in FUZZY_MAP_REVERSE that is closest to the given value
+    closest_key = min(FUZZY_VALUES_SORTED, key=lambda k: abs(k - value))
+    return FUZZY_MAP_REVERSE[closest_key]
 
 
 # --- Helper Function ---
@@ -376,6 +386,8 @@ def confirm_win_route():
         
         if report_data and not report_data.get('error'):
             game_report = report_data
+            # NEW: Store the report in the session so the /game_report page can access it
+            session['game_report'] = json.dumps(game_report)
             
         session.pop('game_session_id', None) # Clear game_id
     
@@ -390,8 +402,8 @@ def thank_you():
     animal = request.args.get('animal', 'that')
     domain_name = request.args.get('domain', 'animals')
     
-    # Retrieve and remove the report from the session
-    report_json = session.pop('game_report', None)
+    # MODIFIED: Retrieve (but DO NOT remove) the report from the session
+    report_json = session.get('game_report', None)
     game_report = None
     if report_json:
         try:
@@ -607,6 +619,25 @@ def submit_teaching():
     except Exception as e:
         app.logger.exception("Failed to submit teaching data")
         return render_template('error.html', message=f"An internal error occurred: {e}")
+
+
+# NEW ROUTE FOR GAME REPORT PAGE
+@app.route('/game_report')
+def game_report():
+    """Displays the game report on its own page."""
+    report_json = session.get('game_report', None)
+    game_report = None
+    if report_json:
+        try:
+            game_report = json.loads(report_json)
+        except json.JSONDecodeError:
+            app.logger.error("Failed to parse game report from session on game_report page")
+    
+    if not game_report:
+        flash("No game report found in your session. It may have expired.", "error")
+        return redirect(url_for('index'))
+        
+    return render_template('game_report.html', game_report=game_report)
 
 
 app.register_blueprint(mod_bp)

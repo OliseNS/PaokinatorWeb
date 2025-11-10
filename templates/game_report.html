@@ -1,0 +1,53 @@
+{% extends "layout.html" %}
+
+{% block content %}
+    
+    <!-- 
+      We wrap the report in a container to constrain its width on desktop
+      and give it a nice card-like feel with a shadow and border.
+    -->
+    <div class="report-container">
+        <h2>Game Report for: {{ game_report.item_name | title }}</h2>
+        
+        <p>
+          {% if game_report.is_new_item %}
+            You taught me about a new one! Here's what I learned.
+          {% else %}
+            I guessed it correctly! Here's a summary of our game.
+          {% endif %}
+        </p>
+        
+        <!-- 
+          This wrapper makes the table horizontally scrollable on 
+          small screens if the content is too wide, preventing
+          the whole page layout from breaking.
+        -->
+        <div class="report-table-wrapper">
+            <table class="report-table">
+                <thead>
+                    <tr>
+                        <th>Question</th>
+                        <th>Your Answer</th>
+                        <th>Consensus Answer</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for q in game_report.questions %}
+                    <tr>
+                        <td>{{ q.question }}</td>
+                        <!-- Use the updated format_fuzzy filter -->
+                        <td>{{ q.user_answer | format_fuzzy }}</td>
+                        <td>{{ q.consensus_answer | format_fuzzy }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="button-grid">
+            <a href="{{ url_for('index') }}" class="btn btn-primary">Play Again</a>
+            <a href="javascript:history.back()" class="btn btn-secondary">Go Back</a>
+        </div>
+    </div>
+
+{% endblock %}
