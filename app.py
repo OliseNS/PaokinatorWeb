@@ -136,7 +136,6 @@ def answer():
     return redirect(url_for('play_game'))
 
 
-# --- API ROUTES (for JavaScript) ---
 @app.route('/api/answer', methods=['POST'])
 def api_answer():
     """
@@ -150,34 +149,30 @@ def api_answer():
     req_data = request.json
     payload = {
         "feature": req_data.get('feature'),
-        "answer": req_data.get('answer'),
-        "animal_name": req_data.get('animal_name')
+        "answer": req_data.get('answer')
     }
 
     # 1. Post the answer to the game server
     answer_response = post_game_server_data(f"/answer/{game_session_id}", payload)
-
-    if answer_response.get('status') == 'guess_correct':
-        # 2. If the sneaky guess was right, tell the client to redirect
-        return jsonify({"redirect_url": url_for('confirm_win_route', animal=answer_response.get('animal'))})
     
     if answer_response.get('error'):
         return jsonify({"error": answer_response.get('details', 'Failed to post answer')}), 500
 
-    # 3. If not, get the next question/game state
+    # 2. Get the next question/game state
     next_game_state = get_game_server_data(f"/question/{game_session_id}")
 
     if next_game_state.get('error'):
-        return jsonify({"redirect_url": url_for('error', message=f"Your session has expired or an error occurred. ({next_game_state.get('details')})")})
+         # If the session expired or errored during get_question, return a redirect payload
+         return jsonify({"redirect_url": url_for('error', message=f"Error fetching question: {next_game_state.get('details')}")})
 
+    # 3. Update session data for /isitthis page if needed
     if next_game_state.get('top_predictions'):
         session['top_predictions'] = json.dumps(next_game_state['top_predictions'])
-        
     if next_game_state.get('guess'):
         session['last_guess'] = next_game_state['guess']
-    
-    return jsonify(next_game_state)
 
+    # 4. Return the new state to the frontend
+    return jsonify(next_game_state)
 
 # --- NEW API ROUTE ---
 @app.route('/api/reject_guess', methods=['POST'])
