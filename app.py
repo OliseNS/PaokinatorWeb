@@ -33,6 +33,23 @@ FUZZY_MAP = {
     'no': 0.0
 }
 
+# NEW: Reverse map for displaying fuzzy values in the report
+FUZZY_MAP_REVERSE = {
+    1.0: "Yes",
+    0.75: "Mostly / Probably",
+    0.5: "Sometimes / Sort of",
+    0.25: "Not Really / Rarely",
+    0.0: "No"
+}
+
+# NEW: Template filter to make fuzzy values human-readable
+@app.template_filter('format_fuzzy')
+def format_fuzzy(value):
+    if value is None:
+        return "N/A"
+    return FUZZY_MAP_REVERSE.get(value, f"Raw: {value}")
+
+
 # --- Helper Function ---
 
 def get_game_server_data(endpoint):
@@ -307,7 +324,10 @@ def this():
 
 @app.route('/learn', methods=['POST'])
 def learn():
-    """Submits the new animal to the learning endpoint."""
+    """
+    Submits the new animal to the learning endpoint.
+    MODIFIED: Now calls the /report endpoint and stores the report in session.
+    """
     game_session_id = session.get('game_session_id')
     if not game_session_id:
         return redirect(url_for('index'))
@@ -316,10 +336,16 @@ def learn():
     if not animal_name:
         return redirect(url_for('this'))
 
-    # The backend /learn endpoint automatically gets domain from session
-    post_game_server_data(f"/learn/{game_session_id}", {"animal_name": animal_name})
+    # MODIFIED: Call the new /report endpoint
+    report_data = get_game_server_data(f"/report/{game_session_id}?item_name={animal_name}&is_new=true")
     
-    # MODIFIED: Pass domain to thank_you page
+    # Clear the game session ID
+    session.pop('game_session_id', None)
+    
+    # Store the report in the session for the thank_you page
+    if report_data and not report_data.get('error'):
+        session['game_report'] = json.dumps(report_data)
+    
     domain_name = session.get('domain_name', 'animals')
     return redirect(url_for('thank_you', animal=animal_name, domain=domain_name))
 
@@ -336,27 +362,46 @@ def confirm_win_from_list(animal_name):
 @app.route('/confirm_win')
 def confirm_win_route():
     """
-    Logs the win on the backend, then shows the "I won!" page.
-    This is now the single point of entry for a confirmed win.
+    Logs the win on the backend by calling /report,
+    then shows the "I won!" page with the report.
     """
     animal = request.args.get('animal', 'your animal')
     game_session_id = session.get('game_session_id')
     domain_name = session.get('domain_name', 'animals')
+    game_report = None
 
     if game_session_id:
-        # MODIFIED: Call POST /win/{session_id} to log the suggestion
-        post_game_server_data(f"/win/{game_session_id}", {"animal_name": animal})
-        session.pop('game_session_id', None) # Clear only game_id, keep domain
+        # MODIFIED: Call GET /report/{session_id} to log the win and get report
+        report_data = get_game_server_data(f"/report/{game_session_id}?item_name={animal}&is_new=false")
+        
+        if report_data and not report_data.get('error'):
+            game_report = report_data
+            
+        session.pop('game_session_id', None) # Clear game_id
     
-    return render_template('win.html', animal=animal, domain=domain_name)
+    return render_template('win.html', animal=animal, domain=domain_name, game_report=game_report)
 
 @app.route('/thank_you')
 def thank_you():
-    """Shows the "Thanks for teaching me" page."""
+    """
+    Shows the "Thanks for teaching me" page.
+    MODIFIED: Now retrieves the game report from the session.
+    """
     animal = request.args.get('animal', 'that')
     domain_name = request.args.get('domain', 'animals')
-    session.pop('game_session_id', None) # Clear only game_id, keep domain
-    return render_template('thank_you.html', animal=animal, domain=domain_name)
+    
+    # Retrieve and remove the report from the session
+    report_json = session.pop('game_report', None)
+    game_report = None
+    if report_json:
+        try:
+            game_report = json.loads(report_json)
+        except json.JSONDecodeError:
+            app.logger.error("Failed to parse game report from session on thank_you page")
+            
+    # session.pop('game_session_id', None) # This is now done in /learn
+    
+    return render_template('thank_you.html', animal=animal, domain=domain_name, game_report=game_report)
 
 @app.route('/add_questions/<animal>')
 def add_questions(animal):
