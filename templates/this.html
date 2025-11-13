@@ -5,7 +5,7 @@
     <p>What were you thinking of?</p>
 
     <form action="{{ url_for('learn') }}" method="POST" style="display: flex; flex-direction: column; gap: 12px; align-items: center; width: 100%;">
-        <input type="text" name="animal_name" placeholder="Enter animal name" required class="input-field">
+        <input type="text" name="animal_name" placeholder="Enter the name here..." required class="input-field">
         <button type="submit" class="btn btn-primary">Teach Me</button>
     </form>
 {% endblock %}
