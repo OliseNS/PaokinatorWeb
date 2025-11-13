@@ -37,8 +37,8 @@ FUZZY_MAP = {
 FUZZY_MAP_REVERSE = {
     1.0: "Yes",
     0.75: "Mostly",
-    0.5: "Sort of",
-    0.25: "Rarely",
+    0.5: "Sometimes",
+    0.25: "Not really",
     0.0: "No"
 }
 
